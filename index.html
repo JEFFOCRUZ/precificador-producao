@@ -151,26 +151,96 @@ button{
 .quote-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .quote-actions button{padding:0 18px}
 .quote-preview{
-  margin-top:20px;background:#fff;color:#171717;border-radius:16px;padding:26px;
-  border:1px solid #d9d9d9;display:none
+  --orc-accent:#E8A900;
+
+  margin:24px auto 0;
+  background:#fff;
+  color:#171717;
+  border-radius:6px;
+  padding:16mm;
+  border:1px solid #d9d9d9;
+  display:none;
+  width:min(100%, 210mm);
+  min-height:297mm;
+  box-shadow:0 18px 45px rgba(0,0,0,.28);
+  overflow:hidden;
 }
-.qp-top{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;border-bottom:3px solid #e7a900;padding-bottom:18px}
-.qp-logo img{max-width:220px;max-height:80px;object-fit:contain}
+.qp-top{
+  display:flex;
+  justify-content:space-between;
+  gap:24px;
+  align-items:flex-start;
+  border-bottom:2px solid var(--orc-accent);
+  padding-bottom:14px;
+}
+.qp-logo img{
+  max-width:55mm;
+  max-height:24mm;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+}
 .qp-title{text-align:right}
-.qp-title h2{margin:0;font-size:24px}
+.qp-title h2{margin:0;font-size:26px;letter-spacing:.3px}
 .qp-title p{margin:6px 0 0;color:#666;font-size:12px}
-.qp-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:20px}
-.qp-box{background:#f6f6f6;border-radius:12px;padding:14px}
-.qp-box h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#8d6800}
+.qp-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8mm;
+  margin-top:8mm;
+}
+.qp-box{
+  background:#f7f7f8;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  padding:12px;
+}
+.qp-box h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--orc-accent)}
 .qp-box p{margin:3px 0;font-size:12px;line-height:1.5}
-.qp-table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}
-.qp-table th{background:#171717;color:#fff;text-align:left;padding:10px}
+.qp-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8mm;
+  font-size:12px;
+  table-layout:fixed;
+}
+.qp-table th{
+  background:#2b2d31;
+  color:#fff;
+  text-align:left;
+  padding:10px;
+}
 .qp-table td{padding:10px;border-bottom:1px solid #ddd}
-.qp-total{margin-top:18px;margin-left:auto;max-width:330px}
+.qp-total{
+  margin-top:8mm;
+  margin-left:auto;
+  width:72mm;
+  max-width:100%;
+}
 .qp-total div{display:flex;justify-content:space-between;padding:7px 0;font-size:13px}
-.qp-total .grand{font-size:20px;font-weight:900;border-top:2px solid #111;margin-top:4px;padding-top:10px;color:#a77800}
-.qp-note{margin-top:22px;font-size:11px;line-height:1.6;color:#555}
+.qp-total .grand{font-size:20px;font-weight:900;border-top:2px solid #111;margin-top:4px;padding-top:10px;color:var(--orc-accent)}
+.qp-note{
+  margin-top:10mm;
+  font-size:11px;
+  line-height:1.6;
+  color:#555;
+}
 .qp-footer{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#777}
+
+@media(max-width:800px){
+  .quote-preview{
+  --orc-accent:#E8A900;
+
+    width:100%;
+    min-height:auto;
+    padding:18px;
+    border-radius:10px;
+  }
+  .qp-grid{grid-template-columns:1fr;gap:12px}
+  .qp-top{flex-direction:column}
+  .qp-title{text-align:left}
+}
+
 @media(max-width:700px){
   .qp-grid{grid-template-columns:1fr}
   .qp-top{flex-direction:column}
@@ -244,6 +314,21 @@ button{
   font-size:12px;
   text-align:center;
 }
+
+@media(max-width:800px){
+  .quote-preview{
+  --orc-accent:#E8A900;
+
+    width:100%;
+    min-height:auto;
+    padding:18px;
+    border-radius:10px;
+  }
+  .qp-grid{grid-template-columns:1fr;gap:12px}
+  .qp-top{flex-direction:column}
+  .qp-title{text-align:left}
+}
+
 @media(max-width:700px){
   .orc-item{
     grid-template-columns:1fr auto;
@@ -514,6 +599,26 @@ button{
       <div class="field">
         <label>Telefone / WhatsApp</label>
         <input id="empresaTelefone" type="text" placeholder="(00) 00000-0000">
+      </div>
+
+      <div class="field">
+        <label>Cor principal do orçamento</label>
+        <select id="corOrcamento">
+          <option value="#E8A900">Amarelo / Dourado</option>
+          <option value="#2563EB">Azul</option>
+          <option value="#16A34A">Verde</option>
+          <option value="#DC2626">Vermelho</option>
+          <option value="#7C3AED">Roxo</option>
+          <option value="#111827">Preto / Grafite</option>
+          <option value="#EA580C">Laranja</option>
+          <option value="#DB2777">Rosa</option>
+          <option value="custom">Personalizada</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Escolher cor personalizada</label>
+        <input id="corOrcamentoCustom" type="color" value="#E8A900" style="padding:4px;height:46px;">
       </div>
       <div class="field">
         <label>CPF ou CNPJ</label>
@@ -814,6 +919,7 @@ function adicionarProdutoAoOrcamento(){
 
   itensOrcamento.push(item);
   renderItensOrcamento();
+aplicarCorPreview();
 
   document.getElementById('orcamento').scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -871,7 +977,41 @@ function gerarNumeroOrcamento(){
     String(d.getMinutes()).padStart(2,'0');
 }
 
+
+function obterCorOrcamentoHex(){
+  const tipo = document.getElementById('corOrcamento').value;
+  if(tipo === 'custom'){
+    return document.getElementById('corOrcamentoCustom').value || '#E8A900';
+  }
+  return tipo || '#E8A900';
+}
+
+function hexToRgb(hex){
+  hex = String(hex || '#E8A900').replace('#','');
+  if(hex.length === 3){
+    hex = hex.split('').map(c => c+c).join('');
+  }
+  const num = parseInt(hex,16);
+  return [
+    (num >> 16) & 255,
+    (num >> 8) & 255,
+    num & 255
+  ];
+}
+
+function aplicarCorPreview(){
+  const cor = obterCorOrcamentoHex();
+  const preview = document.getElementById('quotePreview');
+  if(preview){
+    preview.style.setProperty('--orc-accent', cor);
+  }
+}
+
+document.getElementById('corOrcamento').addEventListener('change', aplicarCorPreview);
+document.getElementById('corOrcamentoCustom').addEventListener('input', aplicarCorPreview);
+
 function gerarPreviewOrcamento(){
+  aplicarCorPreview();
   if(!itensOrcamento.length){
     alert('Adicione pelo menos um produto ao orçamento antes de gerar.');
     return;
@@ -944,7 +1084,7 @@ async function gerarPDFOrcamento(){
   const margin = 16;
   const contentW = pageW - (margin * 2);
 
-  const gold = [232, 169, 0];
+  const gold = hexToRgb(obterCorOrcamentoHex());
   const dark = [28, 30, 34];
   const gray = [105, 110, 118];
   const light = [246, 247, 249];
@@ -1157,8 +1297,8 @@ async function gerarPDFOrcamento(){
   const totalBoxW = 72;
   const totalX = pageW - margin - totalBoxW;
 
-  doc.setFillColor(255,248,226);
-  doc.setDrawColor(242,211,121);
+  doc.setFillColor(248,248,249);
+  doc.setDrawColor(...gold);
   doc.roundedRect(totalX, y, totalBoxW, 23, 3, 3, 'FD');
 
   doc.setTextColor(...gray);
@@ -1166,7 +1306,7 @@ async function gerarPDFOrcamento(){
   doc.setFontSize(8.5);
   doc.text('TOTAL DO ORÇAMENTO', totalX + 5, y + 7);
 
-  doc.setTextColor(160,112,0);
+  doc.setTextColor(...gold);
   doc.setFontSize(16);
   doc.text(brl(total), totalX + totalBoxW - 5, y + 17, {align:'right'});
 
