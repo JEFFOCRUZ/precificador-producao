@@ -382,6 +382,22 @@ button{
   input,select{color:#000;background:#fff}
   .result{position:static}
 }
+
+/* Recursos profissionais adicionais */
+.pro-subcard{margin-top:14px;padding:16px;border:1px solid #303640;border-radius:14px;background:#0c0e12}
+.pro-subcard h4{margin:0 0 12px;font-size:13px;color:var(--gold2)}
+.toggle-note{font-size:11px;color:#858c97;line-height:1.5;margin-top:6px}
+.material-row{display:grid;grid-template-columns:minmax(120px,1.2fr) 1fr 1fr auto;gap:8px;align-items:end;margin-top:8px}
+.material-row button{height:42px;padding:0 12px;background:#35181d;color:#ff9ca8;border:1px solid #5a252e}
+.qty-sim{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+.qty-sim th{background:#242832;color:#fff;text-align:left;padding:9px}.qty-sim td{padding:9px;border-bottom:1px solid #2a2e36}.qty-sim td:nth-child(n+2),.qty-sim th:nth-child(n+2){text-align:right}
+.market-box{margin-top:12px;padding:12px;border-radius:12px;background:rgba(244,180,26,.07);border:1px solid rgba(244,180,26,.24);font-size:12px;color:#c8ccd3;line-height:1.55}
+.market-box strong{color:var(--gold2)}
+.warn-box{margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.25);color:#fda4af;font-size:11px;display:none}
+@media(max-width:700px){.material-row{grid-template-columns:1fr}.qty-sim{font-size:10px}.qty-sim th,.qty-sim td{padding:7px 5px}}
+
+
+@media print{html,body{background:#fff!important}.app>*{display:none!important}.app>#orcamento{display:block!important;margin:0!important;padding:0!important;border:0!important;background:#fff!important}#orcamento>*{display:none!important}#orcamento>#quotePreview{display:block!important;width:100%!important;min-height:0!important;height:auto!important;margin:0!important;padding:10mm!important;box-shadow:none!important;border:0!important;border-radius:0!important}.qp-grid{grid-template-columns:1fr 1fr!important}.qp-top{flex-direction:row!important}.qp-title{text-align:right!important}}
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -461,6 +477,22 @@ button{
           </select>
           <div class="hint">Use "Uma peça" quando o slicer mostrar o tempo de 1 unidade. Use "Lote completo" quando já somou o tempo de todas.</div>
         </div>
+
+        <div class="field full">
+          <label>Materiais usados na impressão</label>
+          <select id="modoMaterial">
+            <option value="simples">Um material / um preço por kg</option>
+            <option value="multi">Múltiplos materiais / AMS / suporte especial</option>
+          </select>
+          <div class="hint">No modo múltiplos materiais, informe o peso TOTAL de cada material no lote, incluindo purga/suporte daquele material.</div>
+        </div>
+        <div class="field full" id="multiMaterialWrap" style="display:none">
+          <div class="pro-subcard">
+            <h4>Materiais do lote</h4>
+            <div id="materiaisLista"></div>
+            <button type="button" class="secondary" onclick="adicionarMaterialLinha()" style="margin-top:10px;padding:0 14px">+ Adicionar material</button>
+          </div>
+        </div>
       </div>
 
       <div class="section">
@@ -508,6 +540,13 @@ button{
             <label>Desgaste/manutenção por hora (R$)</label>
             <input id="desgasteHora" type="number" min="0" step="0.01" value="1.50">
           </div>
+          <div class="field">
+            <label>Como calcular custo da máquina</label>
+            <select id="desgasteModo"><option value="manual">Valor por hora manual</option><option value="auto">Depreciação automática</option></select>
+          </div>
+          <div class="field auto-maquina" style="display:none"><label>Valor pago na impressora (R$)</label><input id="valorImpressora" type="number" min="0" step="0.01" value="2500"></div>
+          <div class="field auto-maquina" style="display:none"><label>Vida útil considerada (horas)</label><input id="vidaUtilHoras" type="number" min="1" step="1" value="8000"></div>
+          <div class="field auto-maquina" style="display:none"><label>Manutenção adicional por hora (R$)</label><input id="manutencaoHora" type="number" min="0" step="0.01" value="0.30"></div>
 
           <div class="field">
             <label>Outros custos manuais fixos do lote (R$)</label>
@@ -543,9 +582,10 @@ button{
             <input id="valorHoraTrabalho" type="number" min="0" step="0.01" value="25">
           </div>
           <div class="field">
-            <label>Preparação + acabamento + embalagem (min)</label>
+            <label>Preparação / setup fixo do pedido (min)</label>
             <input id="minutosTrabalho" type="number" min="0" step="1" value="0">
           </div>
+          <div class="field"><label>Acabamento / embalagem por peça (min)</label><input id="minutosTrabalhoPorPeca" type="number" min="0" step="0.1" value="0"></div>
           <div class="field">
             <label>Tempo de modelagem / projeto (min)</label>
             <input id="minutosModelagem" type="number" min="0" step="1" value="0">
@@ -572,10 +612,19 @@ button{
             <input id="lucroHora" type="number" min="0" step="0.50" value="8">
           </div>
 
-          <div class="field">
-            <label>Taxa da plataforma (%)</label>
-            <input id="taxa" type="number" min="0" max="99" step="0.01" value="0">
-          </div>
+          <div class="field"><label>Canal de venda</label><select id="canalVenda"><option>Venda direta</option><option>Site próprio</option><option>Mercado Livre</option><option>Shopee</option><option>Amazon</option><option>Etsy</option><option>Outro</option></select><div class="hint">As taxas mudam com o tempo e com a conta. Informe abaixo os percentuais reais do seu canal.</div></div>
+          <div class="field"><label>Comissão / plataforma (%)</label><input id="taxa" type="number" min="0" max="99" step="0.01" value="0"></div>
+          <div class="field"><label>Taxa de pagamento (%)</label><input id="taxaPagamento" type="number" min="0" max="99" step="0.01" value="0"></div>
+          <div class="field"><label>Publicidade / Ads (%)</label><input id="taxaAds" type="number" min="0" max="99" step="0.01" value="0"></div>
+          <div class="field"><label>Impostos sobre a venda (%)</label><input id="impostos" type="number" min="0" max="99" step="0.01" value="0"></div>
+          <div class="field"><label>Taxa fixa por pedido (R$)</label><input id="taxaFixaVenda" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Extra por peça / componentes (R$)</label><input id="extraPorPeca" type="number" min="0" step="0.01" value="0" placeholder="Argola, ímã, embalagem individual..."></div>
+          <div class="field"><label>Licença / royalty por peça (R$)</label><input id="royaltyPorPeca" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Frete cobrado do cliente (R$)</label><input id="freteCobrado" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Custo real do frete / entrega (R$)</label><input id="custoFrete" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Adicional de urgência (%)</label><input id="urgencia" type="number" min="0" step="1" value="0"></div>
+          <div class="field"><label>Preço de mercado por peça (opcional)</label><input id="precoMercado" type="number" min="0" step="0.01" value="0" placeholder="Quanto uma peça semelhante custa"></div>
+          <div class="warn-box field full" id="alertaTaxas"></div>
 
           <div class="field">
             <label>Arredondar preço</label>
@@ -634,12 +683,22 @@ button{
         <div class="row"><span>Desgaste/manutenção</span><strong id="cDesgaste">R$ 0,00</strong></div>
         <div class="row"><span>Mão de obra</span><strong id="cMaoObra">R$ 0,00</strong></div>
         <div class="row"><span>Custos extras</span><strong id="cExtras">R$ 0,00</strong></div>
+        <div class="row"><span>Custo máquina efetivo / hora</span><strong id="cMaquinaHora">R$ 0,00</strong></div>
+        <div class="row"><span>Taxas + impostos estimados</span><strong id="cTaxasVenda">R$ 0,00</strong></div>
+        <div class="row"><span>Frete líquido (cobrado − custo)</span><strong id="rFreteLiquido">R$ 0,00</strong></div>
+        <div class="row"><span>Lucro líquido por hora de máquina</span><strong id="lucroHoraReal">R$ 0,00</strong></div>
         <div class="row"><span>Lucro por peça</span><strong id="lucroUnitario" class="profit">R$ 0,00</strong></div>
         <div class="row"><span>Margem sobre a venda</span><strong id="margemVenda">0%</strong></div>
       </div>
 
       <div class="note" id="orientacaoPreco">
         Preencha os dados da produção para receber uma sugestão de preço.
+      </div>
+      <div class="market-box" id="comparacaoMercado" style="display:none"></div>
+      <div class="section">
+        <div class="card-title"><h3>Simulador de quantidade</h3></div>
+        <div class="hint">Estima automaticamente 1, 5, 10, 20, 50 e 100 unidades, diluindo custos fixos e recalculando custos variáveis. Em tempo de “lote completo”, o tempo é proporcionalizado pela quantidade atual.</div>
+        <div style="overflow:auto"><table class="qty-sim"><thead><tr><th>Qtd.</th><th>Unitário</th><th>Total</th><th>Lucro</th><th>Lucro/h máquina</th></tr></thead><tbody id="simuladorQtdBody"></tbody></table></div>
       </div>
 
       <div class="section">
@@ -754,10 +813,12 @@ button{
         <div class="empty-orc">Nenhum produto adicionado ainda. Faça uma precificação e clique em “Adicionar ao orçamento”.</div>
       </div>
 
-      <div class="orc-summary">
-        <span>Total dos produtos</span>
-        <strong id="orcTotalItens">R$ 0,00</strong>
+      <div class="orc-summary"><span>Total dos produtos</span><strong id="orcTotalItens">R$ 0,00</strong></div>
+      <div class="grid" style="margin-top:12px">
+        <div class="field"><label>Frete cobrado no orçamento (R$)</label><input id="orcFrete" type="number" min="0" step="0.01" value="0"></div>
+        <div class="field"><label>Desconto final do orçamento (R$)</label><input id="orcDesconto" type="number" min="0" step="0.01" value="0"></div>
       </div>
+      <div class="orc-summary"><span>Total final do orçamento</span><strong id="orcTotalFinal">R$ 0,00</strong></div>
       <div style="margin-top:10px;text-align:right;">
         <button type="button" class="secondary" onclick="limparOrcamento()" style="height:38px;padding:0 14px;">Limpar orçamento</button>
       </div>
@@ -835,6 +896,8 @@ button{
 
       <div class="qp-total">
         <div><span>Subtotal</span><strong id="qpSubtotal"></strong></div>
+        <div><span>Frete</span><strong id="qpFrete"></strong></div>
+        <div><span>Desconto</span><strong id="qpDesconto"></strong></div>
         <div class="grand"><span>Total</span><strong id="qpTotal"></strong></div>
       </div>
 
@@ -860,8 +923,8 @@ function n(id){return parseFloat(document.getElementById(id).value)||0}
 function brl(v){return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function roundTo(v,s){return s?Math.ceil(v/s)*s:v}
 function formatarHoras(h){
-  const horas=Math.floor(h);
-  const mins=Math.round((h-horas)*60);
+  const totalMin=Math.max(0,Math.round((Number(h)||0)*60));
+  const horas=Math.floor(totalMin/60),mins=totalMin%60;
   if(horas>0 && mins>0) return horas+' h '+mins+' min';
   if(horas>0) return horas+' h';
   return mins+' min';
@@ -873,16 +936,18 @@ let itensOrcamento=[];
 let editandoItemId=null;
 let carregandoDados=false;
 let numeroOrcamentoAtual='';
+let materiaisMulti=[];
+let ultimoCalculo={};
 
 const STORAGE_KEY='bobinou_precificador_v1';
 const CAMPOS_SALVAR=[
-  'produtoNome','material','qtd','filamentoKg','peso','horas','minutos','modoTempo',
-  'estadoEnergia','energiaKwh','impressora','potencia','desgasteHora','maoObra',
-  'extras','margem','reservaFalha','desperdicioGramas','valorHoraTrabalho','minutosTrabalho','minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes','pedidoMinimo','lucroHora','taxa','arredondamento','precoInformado',
+  'produtoNome','material','qtd','filamentoKg','peso','horas','minutos','modoTempo','modoMaterial',
+  'estadoEnergia','energiaKwh','impressora','potencia','desgasteHora','desgasteModo','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra',
+  'extras','extraPorPeca','royaltyPorPeca','margem','reservaFalha','desperdicioGramas','valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes','pedidoMinimo','lucroHora','canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda','freteCobrado','custoFrete','urgencia','precoMercado','arredondamento','precoInformado',
   'precoOrcamentoTipo','precoOrcamentoCustom',
   'empresaNome','empresaTelefone','corOrcamento','corOrcamentoCustom','empresaDoc',
   'empresaEmail','empresaEndereco','clienteNome','clienteTelefone','orcValidade',
-  'orcPrazo','orcPagamento','orcObs'
+  'orcPrazo','orcPagamento','orcObs','orcFrete','orcDesconto'
 ];
 
 function numeroSeguro(id,min=0,max=Number.POSITIVE_INFINITY,inteiro=false){
@@ -895,117 +960,119 @@ function numeroSeguro(id,min=0,max=Number.POSITIVE_INFINITY,inteiro=false){
  return v;
 }
 
+function coletarMateriaisMulti(){
+  const rows=[...document.querySelectorAll('.material-row')];
+  return rows.map((row,idx)=>({
+    nome:(row.querySelector('.mat-nome')?.value||('Material '+(idx+1))).trim(),
+    preco:Math.max(0,parseFloat(row.querySelector('.mat-preco')?.value)||0),
+    peso:Math.max(0,parseFloat(row.querySelector('.mat-peso')?.value)||0)
+  })).filter(m=>m.preco>0 || m.peso>0 || m.nome);
+}
+function adicionarMaterialLinha(material={nome:'',preco:0,peso:0}){
+  const lista=document.getElementById('materiaisLista');
+  const div=document.createElement('div');div.className='material-row';
+  div.innerHTML=`<div><label>Material / cor</label><input class="mat-nome" value="${escapeHtml(material.nome||'')}"></div><div><label>R$/kg</label><input class="mat-preco" type="number" min="0" step="0.01" value="${Number(material.preco||0)}"></div><div><label>Peso total no lote (g)</label><input class="mat-peso" type="number" min="0" step="0.01" value="${Number(material.peso||0)}"></div><button type="button" onclick="this.parentElement.remove();calcular()">Excluir</button>`;
+  lista.appendChild(div);
+  div.querySelectorAll('input').forEach(el=>{el.addEventListener('input',calcular);el.addEventListener('change',calcular)});
+}
+function atualizarModoMaterial(){
+  const multi=document.getElementById('modoMaterial').value==='multi';
+  document.getElementById('multiMaterialWrap').style.display=multi?'block':'none';
+  document.getElementById('material').closest('.field').style.opacity=multi?'.45':'1';
+  document.getElementById('filamentoKg').closest('.field').style.opacity=multi?'.45':'1';
+  document.getElementById('peso').closest('.field').style.opacity=multi?'.45':'1';
+  document.getElementById('desperdicioGramas').closest('.field').style.opacity=multi?'.45':'1';
+  if(multi && !document.querySelector('.material-row')){adicionarMaterialLinha({nome:'PLA 1',preco:70,peso:0});adicionarMaterialLinha({nome:'PLA 2',preco:70,peso:0});}
+}
+function atualizarModoDesgaste(){
+  const auto=document.getElementById('desgasteModo').value==='auto';
+  document.querySelectorAll('.auto-maquina').forEach(el=>el.style.display=auto?'flex':'none');
+  document.getElementById('desgasteHora').closest('.field').style.opacity=auto?'.45':'1';
+}
+function parametrosBase(){
+  const qtd=numeroSeguro('qtd',1,100000,true);
+  const horasBase=numeroSeguro('horas',0,1000000), minutos=numeroSeguro('minutos',0,59,true);
+  const horasInformadas=horasBase+minutos/60;
+  const modoTempo=document.getElementById('modoTempo').value;
+  const tempoPorPeca=modoTempo==='peca'?horasInformadas:(qtd?horasInformadas/qtd:0);
+  const multi=document.getElementById('modoMaterial').value==='multi';
+  const materiais=multi?coletarMateriaisMulti():[];
+  const desgasteModo=document.getElementById('desgasteModo').value;
+  const cMaquinaHora=desgasteModo==='auto'?(numeroSeguro('valorImpressora',0,1e9)/numeroSeguro('vidaUtilHoras',1,1e9)+numeroSeguro('manutencaoHora',0,1e6)):numeroSeguro('desgasteHora',0,1e6);
+  return {qtd,horasInformadas,modoTempo,tempoPorPeca,multi,materiais,cMaquinaHora,
+    filamentoKg:numeroSeguro('filamentoKg',0,1e6),peso:numeroSeguro('peso',0,1e6),desperdicioGramas:numeroSeguro('desperdicioGramas',0,1e6),
+    potencia:numeroSeguro('potencia',0,1e5),energiaKwh:numeroSeguro('energiaKwh',0,1000),
+    maoObra:numeroSeguro('maoObra',0,1e8),extras:numeroSeguro('extras',0,1e8),extraPorPeca:numeroSeguro('extraPorPeca',0,1e8),royaltyPorPeca:numeroSeguro('royaltyPorPeca',0,1e8),
+    margem:numeroSeguro('margem',0,1e5),falha:numeroSeguro('reservaFalha',0,95)/100,
+    valorHoraTrabalho:numeroSeguro('valorHoraTrabalho',0,1e6),minutosSetup:numeroSeguro('minutosTrabalho',0,1e6),minutosPorPeca:numeroSeguro('minutosTrabalhoPorPeca',0,1e6),
+    minutosModelagem:numeroSeguro('minutosModelagem',0,1e6),valorHoraModelagem:numeroSeguro('valorHoraModelagem',0,1e6),
+    custosFixosMes:numeroSeguro('custosFixosMes',0,1e8),horasProdutivasMes:numeroSeguro('horasProdutivasMes',1,1e6),pedidoMinimo:numeroSeguro('pedidoMinimo',0,1e8),lucroHora:numeroSeguro('lucroHora',0,1e6),
+    taxaComissao:numeroSeguro('taxa',0,99)/100,taxaPagamento:numeroSeguro('taxaPagamento',0,99)/100,taxaAds:numeroSeguro('taxaAds',0,99)/100,impostos:numeroSeguro('impostos',0,99)/100,
+    taxaFixa:numeroSeguro('taxaFixaVenda',0,1e8),freteCobrado:numeroSeguro('freteCobrado',0,1e8),custoFrete:numeroSeguro('custoFrete',0,1e8),urgencia:numeroSeguro('urgencia',0,1000)/100,
+    precoMercado:numeroSeguro('precoMercado',0,1e9),arred:numeroSeguro('arredondamento',0,1e6)
+  };
+}
+function calcularCenario(q,b=parametrosBase()){
+  q=Math.max(1,Math.round(q));
+  const horas=b.tempoPorPeca*q;
+  let cFil=0,pesoTotal=0;
+  if(b.multi){
+    const fator=q/b.qtd;
+    for(const m of b.materiais){const p=m.peso*fator;pesoTotal+=p;cFil+=(m.preco/1000)*p;}
+  }else{
+    pesoTotal=b.peso*q;
+    const desperdicio=b.desperdicioGramas*(q/b.qtd);
+    cFil=(b.filamentoKg/1000)*(pesoTotal+desperdicio);
+  }
+  const cEner=(b.potencia/1000)*horas*b.energiaKwh;
+  const cDes=horas*b.cMaquinaHora;
+  const cOverhead=(b.custosFixosMes/b.horasProdutivasMes)*horas;
+  const falhavel=cFil+cEner+cDes+cOverhead;
+  const falhavelAjustado=b.falha<1?falhavel/(1-b.falha):falhavel;
+  const cSetup=(b.minutosSetup/60)*b.valorHoraTrabalho;
+  const cTrabalhoPeca=(b.minutosPorPeca/60)*b.valorHoraTrabalho*q;
+  const cModelagem=(b.minutosModelagem/60)*b.valorHoraModelagem;
+  const cExtras=b.maoObra+b.extras+b.extraPorPeca*q+b.royaltyPorPeca*q;
+  const custoOperacional=falhavelAjustado+cSetup+cTrabalhoPeca+cModelagem+cExtras+b.custoFrete;
+  const pctRaw=b.taxaComissao+b.taxaPagamento+b.taxaAds+b.impostos;
+  const pct=Math.min(.95,pctRaw);
+  const lucroMinHora=horas*b.lucroHora;
+  const lucroMarkup=custoOperacional*(b.margem/100);
+  const lucroRec=Math.max(lucroMarkup,lucroMinHora,q*1.5);
+  const lucroMin=Math.max(custoOperacional*.50,horas*(b.lucroHora*.60),q*.75);
+  const lucroPrem=Math.max(custoOperacional*1.50,horas*(b.lucroHora*1.50),q*2.50);
+  function produtoNecessario(lucro){
+    const brutoNec=(custoOperacional+lucro+b.taxaFixa)/(1-pct);
+    return Math.max(0,brutoNec-b.freteCobrado);
+  }
+  let precoMin=roundTo(produtoNecessario(lucroMin),b.arred);
+  let venda=Math.max(precoMin,b.pedidoMinimo,roundTo(produtoNecessario(lucroRec),b.arred));
+  let prem=Math.max(venda,roundTo(produtoNecessario(lucroPrem),b.arred));
+  if(b.urgencia>0){precoMin=roundTo(precoMin*(1+b.urgencia),b.arred);venda=roundTo(venda*(1+b.urgencia),b.arred);prem=roundTo(prem*(1+b.urgencia),b.arred);}
+  prem=Math.max(prem,venda); venda=Math.max(venda,precoMin);
+  function liquido(precoProduto){const bruto=precoProduto+b.freteCobrado;return bruto*(1-pct)-b.taxaFixa;}
+  const liq=liquido(venda),lucro=liq-custoOperacional,margemVenda=(venda+b.freteCobrado)>0?lucro/(venda+b.freteCobrado)*100:0;
+  const taxasVenda=(venda+b.freteCobrado)*pct+b.taxaFixa;
+  return {q,horas,pesoTotal,cFil,cEner,cDes,cOverhead,cSetup,cTrabalhoPeca,cModelagem,cExtras,custoOperacional,pctRaw,pct,precoMin,venda,prem,liq,lucro,margemVenda,taxasVenda,lucroHoraReal:horas>0?lucro/horas:lucro};
+}
+function renderSimulador(b){
+  const qs=[1,5,10,20,50,100,b.qtd].filter((v,i,a)=>a.indexOf(v)===i).sort((a,z)=>a-z);
+  document.getElementById('simuladorQtdBody').innerHTML=qs.map(q=>{const c=calcularCenario(q,b);return `<tr${q===b.qtd?' style="font-weight:800;color:var(--gold2)"':''}><td>${q}</td><td>${brl(c.venda/q)}</td><td>${brl(c.venda)}</td><td>${brl(c.lucro)}</td><td>${brl(c.lucroHoraReal)}</td></tr>`}).join('');
+}
 function calcular(){
- const qtd=numeroSeguro('qtd',1,100000,true);
- const filamentoKg=numeroSeguro('filamentoKg',0,1000000);
- const peso=numeroSeguro('peso',0,1000000);
- const horasBase=numeroSeguro('horas',0,1000000);
- const minutos=numeroSeguro('minutos',0,59,true);
- const horasInformadas=horasBase+minutos/60;
- const modoTempo=document.getElementById('modoTempo').value;
- const horas=modoTempo==='peca'?horasInformadas*qtd:horasInformadas;
- const potencia=numeroSeguro('potencia',0,100000);
- const energiaKwh=numeroSeguro('energiaKwh',0,1000);
- const maoObra=numeroSeguro('maoObra',0,100000000);
- const extras=numeroSeguro('extras',0,100000000);
- const desgasteHora=numeroSeguro('desgasteHora',0,1000000);
- const margem=numeroSeguro('margem',0,100000);
- const reservaFalha=numeroSeguro('reservaFalha',0,95)/100;
- const desperdicioGramas=numeroSeguro('desperdicioGramas',0,1000000);
- const valorHoraTrabalho=numeroSeguro('valorHoraTrabalho',0,1000000);
- const minutosTrabalho=numeroSeguro('minutosTrabalho',0,1000000);
- const minutosModelagem=numeroSeguro('minutosModelagem',0,1000000);
- const valorHoraModelagem=numeroSeguro('valorHoraModelagem',0,1000000);
- const custosFixosMes=numeroSeguro('custosFixosMes',0,100000000);
- const horasProdutivasMes=numeroSeguro('horasProdutivasMes',1,1000000);
- const pedidoMinimo=numeroSeguro('pedidoMinimo',0,100000000);
- const lucroHora=numeroSeguro('lucroHora',0,1000000);
- const taxa=numeroSeguro('taxa',0,99)/100;
- const informado=numeroSeguro('precoInformado',0,1000000000);
- const arred=numeroSeguro('arredondamento',0,1000000);
-
- const pesoTotal=peso*qtd;
- const pesoCobrado=pesoTotal+desperdicioGramas;
- const cFil=(filamentoKg/1000)*pesoCobrado;
- const cEner=(potencia/1000)*horas*energiaKwh;
- const cDes=horas*desgasteHora;
- const cTrabalhoTempo=(minutosTrabalho/60)*valorHoraTrabalho;
- const cModelagem=(minutosModelagem/60)*valorHoraModelagem;
- const cOverhead=(custosFixosMes/horasProdutivasMes)*horas;
- const custoDireto=cFil+cEner+cDes+maoObra+extras+cTrabalhoTempo+cModelagem+cOverhead;
-
- // Custo esperado por trabalho concluído: incorpora reimpressões de forma probabilística.
- const custoSeguro=reservaFalha<1?custoDireto/(1-reservaFalha):custoDireto;
-
- const lucroMinimoHora=horas*lucroHora;
- const lucroPorMargem=custoSeguro*(margem/100);
- const lucroRecomendado=Math.max(lucroPorMargem,lucroMinimoHora,qtd*1.50);
- const lucroMinimo=Math.max(custoSeguro*.50,horas*(lucroHora*.60),qtd*.75);
- const lucroPremium=Math.max(custoSeguro*1.50,horas*(lucroHora*1.50),qtd*2.50);
-
- function precoComTaxa(custo, lucro){
-   const bruto=custo+lucro;
-   return bruto/(1-taxa);
- }
-
- // Garante uma faixa comercial coerente em qualquer combinação de campos.
- const precoMin=roundTo(precoComTaxa(custoSeguro,lucroMinimo),arred);
- const venda=Math.max(precoMin,pedidoMinimo,roundTo(precoComTaxa(custoSeguro,lucroRecomendado),arred));
- const precoPrem=Math.max(venda,roundTo(precoComTaxa(custoSeguro,lucroPremium),arred));
-
- precosCalculados={min:precoMin,rec:venda,prem:precoPrem};
-
- const custoUn=custoSeguro/qtd;
- const vendaUn=venda/qtd;
- const liquido=venda*(1-taxa);
- const lucro=liquido-custoSeguro;
- const lucroUn=lucro/qtd;
- const margVenda=venda>0?(lucro/venda)*100:0;
-
- document.getElementById('pesoTotalCalculado').textContent=pesoTotal.toLocaleString('pt-BR',{maximumFractionDigits:2})+' g';
- document.getElementById('tempoTotalCalculado').textContent=formatarHoras(horas);
- document.getElementById('cFilamento').textContent=brl(cFil);
- document.getElementById('cTrabalhoTempo').textContent=brl(cTrabalhoTempo);
- document.getElementById('cModelagem').textContent=brl(cModelagem);
- document.getElementById('cOverhead').textContent=brl(cOverhead);
- document.getElementById('cEnergia').textContent=brl(cEner);
- document.getElementById('cDesgaste').textContent=brl(cDes);
- document.getElementById('cMaoObra').textContent=brl(maoObra);
- document.getElementById('cExtras').textContent=brl(extras);
- document.getElementById('cTotal').textContent=brl(custoSeguro);
- document.getElementById('cUnitario').textContent=brl(custoUn);
- document.getElementById('precoRecomendado').textContent=brl(venda);
- document.getElementById('precoMinimo').textContent=brl(precoMin);
- document.getElementById('precoPremium').textContent=brl(precoPrem);
- document.getElementById('precoUnitario').textContent=brl(vendaUn);
- document.getElementById('lucroEstimado').textContent=brl(lucro);
- document.getElementById('lucroUnitario').textContent=brl(lucroUn);
- document.getElementById('margemVenda').textContent=margVenda.toFixed(1).replace('.',',')+'%';
-
- const orientacao=document.getElementById('orientacaoPreco');
- if(custoSeguro<=0){
-   orientacao.textContent='Preencha o valor do filamento, peso por peça, tempo e demais custos para receber uma sugestão confiável.';
- } else {
-   orientacao.innerHTML=
-     '<strong>Faixa sugerida:</strong> evite vender abaixo de <strong>'+brl(precoMin)+'</strong>. '+
-     'Para uma operação saudável, sugerimos <strong>'+brl(venda)+'</strong>. '+
-     'Se a peça tiver alto valor percebido, personalização ou urgência, considere até <strong>'+brl(precoPrem)+'</strong>.';
- }
-
- const liqInf=informado*(1-taxa);
- const lucroInf=liqInf-custoSeguro;
- const lucroInfUn=lucroInf/qtd;
- const margInf=informado>0?(lucroInf/informado)*100:0;
- document.getElementById('rPrecoInformado').textContent=brl(informado);
- document.getElementById('rLucroInformado').textContent=brl(lucroInf);
- document.getElementById('rLucroUnidade').textContent=brl(lucroInfUn);
- document.getElementById('rMargemReal').textContent=margInf.toFixed(1).replace('.',',')+'%';
-
- ['lucroEstimado','lucroUnitario'].forEach(id=>document.getElementById(id).className=lucro>=0?'profit':'loss');
- ['rLucroInformado','rLucroUnidade'].forEach(id=>document.getElementById(id).className=lucroInf>=0?'profit':'loss');
-
- atualizarPrecoOrcamentoCustomWrap();
- if(!carregandoDados) salvarDados();
+  atualizarModoMaterial();atualizarModoDesgaste();
+  const b=parametrosBase(),c=calcularCenario(b.qtd,b);ultimoCalculo={...c,base:b};
+  precosCalculados={min:c.precoMin,rec:c.venda,prem:c.prem};
+  document.getElementById('pesoTotalCalculado').textContent=c.pesoTotal.toLocaleString('pt-BR',{maximumFractionDigits:2})+' g';
+  document.getElementById('tempoTotalCalculado').textContent=formatarHoras(c.horas);
+  document.getElementById('cFilamento').textContent=brl(c.cFil);document.getElementById('cTrabalhoTempo').textContent=brl(c.cSetup+c.cTrabalhoPeca);document.getElementById('cModelagem').textContent=brl(c.cModelagem);document.getElementById('cOverhead').textContent=brl(c.cOverhead);document.getElementById('cEnergia').textContent=brl(c.cEner);document.getElementById('cDesgaste').textContent=brl(c.cDes);document.getElementById('cMaoObra').textContent=brl(b.maoObra);document.getElementById('cExtras').textContent=brl(b.extras+b.extraPorPeca*b.qtd+b.royaltyPorPeca*b.qtd);document.getElementById('cTotal').textContent=brl(c.custoOperacional);document.getElementById('cUnitario').textContent=brl(c.custoOperacional/b.qtd);
+  document.getElementById('precoRecomendado').textContent=brl(c.venda);document.getElementById('precoMinimo').textContent=brl(c.precoMin);document.getElementById('precoPremium').textContent=brl(c.prem);document.getElementById('precoUnitario').textContent=brl(c.venda/b.qtd);document.getElementById('lucroEstimado').textContent=brl(c.lucro);document.getElementById('lucroUnitario').textContent=brl(c.lucro/b.qtd);document.getElementById('margemVenda').textContent=c.margemVenda.toFixed(1).replace('.',',')+'%';document.getElementById('cMaquinaHora').textContent=brl(b.cMaquinaHora);document.getElementById('cTaxasVenda').textContent=brl(c.taxasVenda);document.getElementById('rFreteLiquido').textContent=brl(b.freteCobrado-b.custoFrete);document.getElementById('lucroHoraReal').textContent=brl(c.lucroHoraReal);
+  const alerta=document.getElementById('alertaTaxas');if(c.pctRaw>=.95){alerta.style.display='block';alerta.textContent='A soma de comissão, pagamento, anúncios e impostos chegou a 95% ou mais. Para evitar divisão inválida, o cálculo foi limitado a 95%. Revise suas taxas.'}else alerta.style.display='none';
+  const orientacao=document.getElementById('orientacaoPreco');if(c.custoOperacional<=0){orientacao.textContent='Preencha material, peso, tempo e custos para receber uma sugestão confiável.'}else{orientacao.innerHTML='<strong>Faixa sugerida:</strong> evite vender o produto abaixo de <strong>'+brl(c.precoMin)+'</strong>. Recomendado: <strong>'+brl(c.venda)+'</strong>. Premium: <strong>'+brl(c.prem)+'</strong>.'+(b.freteCobrado>0?' Frete cobrado à parte: <strong>'+brl(b.freteCobrado)+'</strong>.':'');}
+  const mercado=document.getElementById('comparacaoMercado');if(b.precoMercado>0){const unit=c.venda/b.qtd,dif=(unit/b.precoMercado-1)*100;mercado.style.display='block';mercado.innerHTML='<strong>Comparação de mercado:</strong> seu recomendado é '+brl(unit)+'/un. O mercado informado é '+brl(b.precoMercado)+'/un. Você está '+Math.abs(dif).toFixed(1).replace('.',',')+'% '+(dif<0?'abaixo':'acima')+' do valor informado.';}else mercado.style.display='none';
+  const informado=numeroSeguro('precoInformado',0,1e9),grossInf=informado+b.freteCobrado,liqInf=grossInf*(1-c.pct)-b.taxaFixa,lucroInf=liqInf-c.custoOperacional,margInf=grossInf>0?lucroInf/grossInf*100:0;document.getElementById('rPrecoInformado').textContent=brl(informado);document.getElementById('rLucroInformado').textContent=brl(lucroInf);document.getElementById('rLucroUnidade').textContent=brl(lucroInf/b.qtd);document.getElementById('rMargemReal').textContent=margInf.toFixed(1).replace('.',',')+'%';
+  ['lucroEstimado','lucroUnitario','lucroHoraReal'].forEach(id=>document.getElementById(id).className=c.lucro>=0?'profit':'loss');['rLucroInformado','rLucroUnidade'].forEach(id=>document.getElementById(id).className=lucroInf>=0?'profit':'loss');
+  renderSimulador(b);atualizarPrecoOrcamentoCustomWrap();atualizarTotaisOrcamento();if(!carregandoDados) salvarDados();
 }
 
 document.getElementById('estadoEnergia').addEventListener('change',function(){
@@ -1023,6 +1090,7 @@ document.querySelectorAll('input,select').forEach(el=>{
  el.addEventListener('input',calcular);
  el.addEventListener('change',calcular);
 });
+document.getElementById('modoMaterial').addEventListener('change',calcular);document.getElementById('desgasteModo').addEventListener('change',calcular);
 
 function atualizarPrecoOrcamentoCustomWrap(){
   const wrap=document.getElementById('precoOrcamentoCustomWrap');
@@ -1042,7 +1110,8 @@ function salvarDados(){
       fields:{},
       itensOrcamento,
       logoEmpresaData,
-      numeroOrcamentoAtual
+      numeroOrcamentoAtual,
+      materiaisMulti:coletarMateriaisMulti()
     };
     CAMPOS_SALVAR.forEach(id=>{
       const el=document.getElementById(id);
@@ -1066,6 +1135,7 @@ function carregarDados(){
     }
     if(Array.isArray(data.itensOrcamento)) itensOrcamento=data.itensOrcamento;
     if(typeof data.numeroOrcamentoAtual==='string') numeroOrcamentoAtual=data.numeroOrcamentoAtual;
+    if(Array.isArray(data.materiaisMulti)){materiaisMulti=data.materiaisMulti;const ml=document.getElementById('materiaisLista');if(ml){ml.innerHTML='';materiaisMulti.forEach(adicionarMaterialLinha);}}
     if(data.logoEmpresaData){
       logoEmpresaData=data.logoEmpresaData;
       const preview=document.getElementById('empresaLogoPreview');
@@ -1078,6 +1148,7 @@ function carregarDados(){
   }
 }
 
+if(!document.querySelector('.material-row')) adicionarMaterialLinha({nome:'PLA',preco:70,peso:0});
 carregarDados();
 calcular();
 
@@ -1129,7 +1200,7 @@ function adicionarProdutoAoOrcamento(){
   calcular();
 
   const nome = valorTexto('produtoNome') || 'Produto / serviço de impressão 3D';
-  const material = document.getElementById('material').value || '';
+  const material = document.getElementById('modoMaterial').value==='multi' ? (coletarMateriaisMulti().map(m=>m.nome).filter(Boolean).join(' + ') || 'Multimaterial / AMS') : (document.getElementById('material').value || '');
   const qtd = numeroSeguro('qtd',1,100000,true);
   const precoLote = obterPrecoSelecionadoCalculadora();
 
@@ -1148,6 +1219,7 @@ function adicionarProdutoAoOrcamento(){
   };
 
   itensOrcamento.push(item);
+  if(itensOrcamento.length===1 && numeroSeguro('orcFrete',0,1e8)===0 && ultimoCalculo.base?.freteCobrado>0) document.getElementById('orcFrete').value=ultimoCalculo.base.freteCobrado.toFixed(2);
   renderItensOrcamento();
   aplicarCorPreview();
   salvarDados();
@@ -1211,6 +1283,7 @@ function renderItensOrcamento(){
     lista.innerHTML = '<div class="empty-orc">Nenhum produto adicionado ainda. Faça uma precificação e clique em “Adicionar ao orçamento”.</div>';
     count.textContent = '0 ITEM';
     totalEl.textContent = brl(0);
+    atualizarTotaisOrcamento();
     return;
   }
 
@@ -1252,12 +1325,13 @@ function renderItensOrcamento(){
   }).join('');
 
   count.textContent = itensOrcamento.length + (itensOrcamento.length === 1 ? ' ITEM' : ' ITENS');
-  totalEl.textContent = brl(totalOrcamento());
+  totalEl.textContent = brl(subtotalOrcamento());
+  atualizarTotaisOrcamento();
 }
 
-function totalOrcamento(){
-  return itensOrcamento.reduce((s,i)=>s+i.total,0);
-}
+function subtotalOrcamento(){return itensOrcamento.reduce((s,i)=>s+i.total,0);}
+function totalOrcamento(){const sub=subtotalOrcamento(),frete=numeroSeguro('orcFrete',0,1e8),desc=numeroSeguro('orcDesconto',0,1e8);return Math.max(0,sub+frete-desc);}
+function atualizarTotaisOrcamento(){const sub=subtotalOrcamento();const t=document.getElementById('orcTotalItens');if(t)t.textContent=brl(sub);const f=document.getElementById('orcTotalFinal');if(f)f.textContent=brl(totalOrcamento());}
 
 function escapeHtml(str){
   return String(str || '').replace(/[&<>"']/g, s => ({
@@ -1347,7 +1421,9 @@ function gerarPreviewOrcamento(){
     </tr>
   `).join('');
 
-  document.getElementById('qpSubtotal').textContent = brl(total);
+  document.getElementById('qpSubtotal').textContent = brl(subtotalOrcamento());
+  document.getElementById('qpFrete').textContent = brl(numeroSeguro('orcFrete',0,1e8));
+  document.getElementById('qpDesconto').textContent = '- '+brl(numeroSeguro('orcDesconto',0,1e8));
   document.getElementById('qpTotal').textContent = brl(total);
   document.getElementById('qpPagamento').textContent = valorTexto('orcPagamento') || 'A combinar';
   document.getElementById('qpObs').textContent = valorTexto('orcObs') || '—';
@@ -1368,7 +1444,7 @@ async function gerarPDFOrcamento(){
   gerarPreviewOrcamento();
 
   if(!window.jspdf || !window.jspdf.jsPDF){
-    alert('O gerador de PDF não foi carregado. Verifique sua conexão com a internet e tente novamente.');
+    if(confirm('O gerador direto de PDF não carregou. Deseja abrir a impressão do navegador para salvar como PDF?')) window.print();
     return;
   }
 
@@ -1598,22 +1674,23 @@ async function gerarPDFOrcamento(){
   // Total
   y += 6;
   const totalBoxW = 72;
+  const freteOrc=numeroSeguro('orcFrete',0,1e8), descontoOrc=numeroSeguro('orcDesconto',0,1e8), subtotalOrc=subtotalOrcamento();
   const totalX = pageW - margin - totalBoxW;
 
   doc.setFillColor(248,248,249);
   doc.setDrawColor(...gold);
-  doc.roundedRect(totalX, y, totalBoxW, 23, 3, 3, 'FD');
+  doc.roundedRect(totalX, y, totalBoxW, 37, 3, 3, 'FD');
 
   doc.setTextColor(...gray);
   doc.setFont('helvetica','bold');
   doc.setFontSize(8.5);
-  doc.text('TOTAL DO ORÇAMENTO', totalX + 5, y + 7);
+  doc.text('SUBTOTAL', totalX + 5, y + 6);doc.setFont('helvetica','normal');doc.text(brl(subtotalOrc), totalX+totalBoxW-5, y+6,{align:'right'});doc.text('Frete',totalX+5,y+12);doc.text(brl(freteOrc),totalX+totalBoxW-5,y+12,{align:'right'});doc.text('Desconto',totalX+5,y+18);doc.text('- '+brl(descontoOrc),totalX+totalBoxW-5,y+18,{align:'right'});doc.setFont('helvetica','bold');doc.text('TOTAL DO ORÇAMENTO', totalX + 5, y + 25);
 
   doc.setTextColor(...gold);
   doc.setFontSize(16);
-  doc.text(brl(total), totalX + totalBoxW - 5, y + 17, {align:'right'});
+  doc.text(brl(total), totalX + totalBoxW - 5, y + 34, {align:'right'});
 
-  y += 34;
+  y += 48;
 
   async function novaPaginaConteudo(){
     doc.addPage('a4','portrait');
