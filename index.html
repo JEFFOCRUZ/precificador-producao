@@ -291,6 +291,43 @@ button{
   padding:0 12px;
   border-radius:10px;
 }
+.btn-editar{
+  background:#1a2435;
+  color:#93c5fd;
+  border:1px solid #2d4a6f;
+  height:36px;
+  padding:0 12px;
+  border-radius:10px;
+}
+.btn-salvar{
+  background:#14301f;
+  color:#86efac;
+  border:1px solid #25633d;
+  height:36px;
+  padding:0 12px;
+  border-radius:10px;
+}
+.orc-item input[type="number"]{
+  height:36px;
+  width:88px;
+  padding:0 8px;
+  font-size:13px;
+}
+.orc-item-actions{display:flex;gap:6px;flex-wrap:wrap}
+.preco-orcamento-box{
+  margin-top:16px;
+  padding:14px;
+  border:1px solid #2f343d;
+  border-radius:14px;
+  background:#0c0e12;
+}
+.preco-orcamento-box .grid{margin-top:0}
+@media(max-width:700px){
+  .orc-item{
+    grid-template-columns:1fr;
+  }
+  .orc-item-actions{justify-content:flex-end}
+}
 .orc-summary{
   margin-top:14px;
   padding:14px 16px;
@@ -413,6 +450,15 @@ button{
         <div class="field">
           <label>Minutos de impressão</label>
           <input id="minutos" type="number" min="0" max="59" step="1" value="0">
+        </div>
+
+        <div class="field full">
+          <label>Tempo informado refere-se a</label>
+          <select id="modoTempo">
+            <option value="peca">Uma peça (multiplica pela quantidade)</option>
+            <option value="lote">Lote completo (já inclui todas as peças)</option>
+          </select>
+          <div class="hint">Use "Uma peça" quando o slicer mostrar o tempo de 1 unidade. Use "Lote completo" quando já somou o tempo de todas.</div>
         </div>
       </div>
 
@@ -546,6 +592,7 @@ button{
 
       <div class="breakdown">
         <div class="row"><span>Peso total do lote</span><strong id="pesoTotalCalculado">0 g</strong></div>
+        <div class="row"><span>Tempo total considerado</span><strong id="tempoTotalCalculado">0 h</strong></div>
         <div class="row"><span>Filamento</span><strong id="cFilamento">R$ 0,00</strong></div>
         <div class="row"><span>Energia</span><strong id="cEnergia">R$ 0,00</strong></div>
         <div class="row"><span>Desgaste/manutenção</span><strong id="cDesgaste">R$ 0,00</strong></div>
@@ -573,6 +620,24 @@ button{
         Este precificador é uma ferramenta de apoio. Custos reais podem variar conforme tarifa elétrica, manutenção, falhas, impostos e condições de produção.
       </div>
     </aside>
+<div class="preco-orcamento-box">
+  <div class="grid">
+    <div class="field full">
+      <label>Preço a usar no orçamento</label>
+      <select id="precoOrcamentoTipo">
+        <option value="recomendado">Preço recomendado</option>
+        <option value="minimo">Preço mínimo</option>
+        <option value="premium">Preço premium</option>
+        <option value="informado">Preço que pretendo cobrar</option>
+        <option value="personalizado">Preço personalizado</option>
+      </select>
+    </div>
+    <div class="field full" id="precoOrcamentoCustomWrap" style="display:none;">
+      <label>Valor personalizado do lote (R$)</label>
+      <input id="precoOrcamentoCustom" type="number" min="0" step="0.01" value="0">
+    </div>
+  </div>
+</div>
 <div class="actions" style="margin-top:16px;">
   <button class="primary" onclick="adicionarProdutoAoOrcamento()" style="width:100%;">Adicionar ao orçamento</button>
 </div>
@@ -656,6 +721,9 @@ button{
       <div class="orc-summary">
         <span>Total dos produtos</span>
         <strong id="orcTotalItens">R$ 0,00</strong>
+      </div>
+      <div style="margin-top:10px;text-align:right;">
+        <button type="button" class="secondary" onclick="limparOrcamento()" style="height:38px;padding:0 14px;">Limpar orçamento</button>
       </div>
     </div>
 
@@ -755,23 +823,62 @@ const tarifasEnergiaPorEstado={
 function n(id){return parseFloat(document.getElementById(id).value)||0}
 function brl(v){return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function roundTo(v,s){return s?Math.ceil(v/s)*s:v}
+function formatarHoras(h){
+  const horas=Math.floor(h);
+  const mins=Math.round((h-horas)*60);
+  if(horas>0 && mins>0) return horas+' h '+mins+' min';
+  if(horas>0) return horas+' h';
+  return mins+' min';
+}
+
+let precosCalculados={min:0,rec:0,prem:0};
+let logoEmpresaData='';
+let itensOrcamento=[];
+let editandoItemId=null;
+let carregandoDados=false;
+let numeroOrcamentoAtual='';
+
+const STORAGE_KEY='bobinou_precificador_v1';
+const CAMPOS_SALVAR=[
+  'produtoNome','material','qtd','filamentoKg','peso','horas','minutos','modoTempo',
+  'estadoEnergia','energiaKwh','impressora','potencia','desgasteHora','maoObra',
+  'extras','margem','reservaFalha','lucroHora','taxa','arredondamento','precoInformado',
+  'precoOrcamentoTipo','precoOrcamentoCustom',
+  'empresaNome','empresaTelefone','corOrcamento','corOrcamentoCustom','empresaDoc',
+  'empresaEmail','empresaEndereco','clienteNome','clienteTelefone','orcValidade',
+  'orcPrazo','orcPagamento','orcObs'
+];
+
+function numeroSeguro(id,min=0,max=Number.POSITIVE_INFINITY,inteiro=false){
+ const el=document.getElementById(id);
+ let v=parseFloat(el && el.value);
+ if(!Number.isFinite(v)) v=min;
+ v=Math.min(max,Math.max(min,v));
+ if(inteiro) v=Math.round(v);
+ if(el && String(el.value)!==String(v)) el.value=v;
+ return v;
+}
 
 function calcular(){
- const qtd=Math.max(1,n('qtd'));
- const filamentoKg=n('filamentoKg');
- const peso=n('peso');
- const horas=n('horas')+n('minutos')/60;
- const potencia=n('potencia');
- const energiaKwh=n('energiaKwh');
- const maoObra=n('maoObra');
- const extras=n('extras');
- const desgasteHora=n('desgasteHora');
- const margem=n('margem');
- const reservaFalha=n('reservaFalha')/100;
- const lucroHora=n('lucroHora');
- const taxa=n('taxa')/100;
- const informado=n('precoInformado');
- const arred=n('arredondamento');
+ const qtd=numeroSeguro('qtd',1,100000,true);
+ const filamentoKg=numeroSeguro('filamentoKg',0,1000000);
+ const peso=numeroSeguro('peso',0,1000000);
+ const horasBase=numeroSeguro('horas',0,1000000);
+ const minutos=numeroSeguro('minutos',0,59,true);
+ const horasInformadas=horasBase+minutos/60;
+ const modoTempo=document.getElementById('modoTempo').value;
+ const horas=modoTempo==='peca'?horasInformadas*qtd:horasInformadas;
+ const potencia=numeroSeguro('potencia',0,100000);
+ const energiaKwh=numeroSeguro('energiaKwh',0,1000);
+ const maoObra=numeroSeguro('maoObra',0,100000000);
+ const extras=numeroSeguro('extras',0,100000000);
+ const desgasteHora=numeroSeguro('desgasteHora',0,1000000);
+ const margem=numeroSeguro('margem',0,100000);
+ const reservaFalha=numeroSeguro('reservaFalha',0,1000)/100;
+ const lucroHora=numeroSeguro('lucroHora',0,1000000);
+ const taxa=numeroSeguro('taxa',0,99)/100;
+ const informado=numeroSeguro('precoInformado',0,1000000000);
+ const arred=numeroSeguro('arredondamento',0,1000000);
 
  const pesoTotal=peso*qtd;
  const cFil=(filamentoKg/1000)*pesoTotal;
@@ -779,27 +886,26 @@ function calcular(){
  const cDes=horas*desgasteHora;
  const custoDireto=cFil+cEner+cDes+maoObra+extras;
 
- // Reserva técnica para perdas, falhas, retrabalho e pequenas variações.
  const reserva=custoDireto*reservaFalha;
  const custoSeguro=custoDireto+reserva;
 
- // Três faixas: mínimo, recomendado e premium.
- // O recomendado respeita tanto a margem desejada quanto um lucro mínimo por hora.
  const lucroMinimoHora=horas*lucroHora;
  const lucroPorMargem=custoSeguro*(margem/100);
  const lucroRecomendado=Math.max(lucroPorMargem,lucroMinimoHora,qtd*1.50);
-
  const lucroMinimo=Math.max(custoSeguro*.50,horas*(lucroHora*.60),qtd*.75);
  const lucroPremium=Math.max(custoSeguro*1.50,horas*(lucroHora*1.50),qtd*2.50);
 
  function precoComTaxa(custo, lucro){
    const bruto=custo+lucro;
-   return taxa<1?bruto/(1-taxa):bruto;
+   return bruto/(1-taxa);
  }
 
+ // Garante uma faixa comercial coerente em qualquer combinação de campos.
  const precoMin=roundTo(precoComTaxa(custoSeguro,lucroMinimo),arred);
- const venda=roundTo(precoComTaxa(custoSeguro,lucroRecomendado),arred);
- const precoPrem=roundTo(precoComTaxa(custoSeguro,lucroPremium),arred);
+ const venda=Math.max(precoMin,roundTo(precoComTaxa(custoSeguro,lucroRecomendado),arred));
+ const precoPrem=Math.max(venda,roundTo(precoComTaxa(custoSeguro,lucroPremium),arred));
+
+ precosCalculados={min:precoMin,rec:venda,prem:precoPrem};
 
  const custoUn=custoSeguro/qtd;
  const vendaUn=venda/qtd;
@@ -809,6 +915,7 @@ function calcular(){
  const margVenda=venda>0?(lucro/venda)*100:0;
 
  document.getElementById('pesoTotalCalculado').textContent=pesoTotal.toLocaleString('pt-BR',{maximumFractionDigits:2})+' g';
+ document.getElementById('tempoTotalCalculado').textContent=formatarHoras(horas);
  document.getElementById('cFilamento').textContent=brl(cFil);
  document.getElementById('cEnergia').textContent=brl(cEner);
  document.getElementById('cDesgaste').textContent=brl(cDes);
@@ -845,6 +952,9 @@ function calcular(){
 
  ['lucroEstimado','lucroUnitario'].forEach(id=>document.getElementById(id).className=lucro>=0?'profit':'loss');
  ['rLucroInformado','rLucroUnidade'].forEach(id=>document.getElementById(id).className=lucroInf>=0?'profit':'loss');
+
+ atualizarPrecoOrcamentoCustomWrap();
+ if(!carregandoDados) salvarDados();
 }
 
 document.getElementById('estadoEnergia').addEventListener('change',function(){
@@ -862,19 +972,83 @@ document.querySelectorAll('input,select').forEach(el=>{
  el.addEventListener('input',calcular);
  el.addEventListener('change',calcular);
 });
+
+function atualizarPrecoOrcamentoCustomWrap(){
+  const wrap=document.getElementById('precoOrcamentoCustomWrap');
+  if(wrap){
+    wrap.style.display=document.getElementById('precoOrcamentoTipo').value==='personalizado'?'block':'none';
+  }
+}
+
+document.getElementById('precoOrcamentoTipo').addEventListener('change',function(){
+  atualizarPrecoOrcamentoCustomWrap();
+  if(!carregandoDados) salvarDados();
+});
+
+function salvarDados(){
+  try{
+    const data={
+      fields:{},
+      itensOrcamento,
+      logoEmpresaData,
+      numeroOrcamentoAtual
+    };
+    CAMPOS_SALVAR.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) data.fields[id]=el.value;
+    });
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+
+function carregarDados(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data=JSON.parse(raw);
+    carregandoDados=true;
+    if(data.fields){
+      CAMPOS_SALVAR.forEach(id=>{
+        const el=document.getElementById(id);
+        if(el && data.fields[id]!==undefined) el.value=data.fields[id];
+      });
+    }
+    if(Array.isArray(data.itensOrcamento)) itensOrcamento=data.itensOrcamento;
+    if(typeof data.numeroOrcamentoAtual==='string') numeroOrcamentoAtual=data.numeroOrcamentoAtual;
+    if(data.logoEmpresaData){
+      logoEmpresaData=data.logoEmpresaData;
+      const preview=document.getElementById('empresaLogoPreview');
+      if(preview) preview.src=logoEmpresaData;
+    }
+    carregandoDados=false;
+    atualizarPrecoOrcamentoCustomWrap();
+  }catch(e){
+    carregandoDados=false;
+  }
+}
+
+carregarDados();
 calcular();
-
-
-let logoEmpresaData = "";
-let itensOrcamento = [];
 
 document.getElementById('empresaLogo').addEventListener('change', function(e){
   const file = e.target.files && e.target.files[0];
   if(!file) return;
+  const tiposPermitidos=['image/png','image/jpeg','image/webp'];
+  if(!tiposPermitidos.includes(file.type)){
+    alert('Use uma logo em PNG, JPG ou WEBP.');
+    e.target.value='';
+    return;
+  }
+  if(file.size > 2*1024*1024){
+    alert('A logo deve ter no máximo 2 MB para que o orçamento possa ser salvo corretamente no navegador.');
+    e.target.value='';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = ev => {
     logoEmpresaData = ev.target.result;
     document.getElementById('empresaLogoPreview').src = logoEmpresaData;
+    salvarDados();
   };
   reader.readAsDataURL(file);
 });
@@ -892,19 +1066,24 @@ function parseBRL(txt){
 }
 
 function obterPrecoSelecionadoCalculadora(){
-  return parseBRL(document.getElementById('precoRecomendado').textContent);
+  const tipo=document.getElementById('precoOrcamentoTipo').value;
+  if(tipo==='minimo') return precosCalculados.min;
+  if(tipo==='premium') return precosCalculados.prem;
+  if(tipo==='informado') return numeroSeguro('precoInformado',0,1000000000);
+  if(tipo==='personalizado') return numeroSeguro('precoOrcamentoCustom',0,1000000000);
+  return precosCalculados.rec;
 }
 
 function adicionarProdutoAoOrcamento(){
   calcular();
 
   const nome = valorTexto('produtoNome') || 'Produto / serviço de impressão 3D';
-  const material = valorTexto('material') || '';
-  const qtd = Math.max(1, n('qtd'));
+  const material = document.getElementById('material').value || '';
+  const qtd = numeroSeguro('qtd',1,100000,true);
   const precoLote = obterPrecoSelecionadoCalculadora();
 
   if(precoLote <= 0){
-    alert('Preencha os dados da produção e calcule um preço antes de adicionar ao orçamento.');
+    alert('Preencha os dados da produção e escolha um preço válido antes de adicionar ao orçamento.');
     return;
   }
 
@@ -919,14 +1098,57 @@ function adicionarProdutoAoOrcamento(){
 
   itensOrcamento.push(item);
   renderItensOrcamento();
-aplicarCorPreview();
+  aplicarCorPreview();
+  salvarDados();
 
   document.getElementById('orcamento').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function excluirItemOrcamento(id){
   itensOrcamento = itensOrcamento.filter(i => i.id !== id);
+  if(editandoItemId===id) editandoItemId=null;
+  if(!itensOrcamento.length) numeroOrcamentoAtual='';
   renderItensOrcamento();
+  salvarDados();
+}
+
+function iniciarEdicaoItem(id){
+  editandoItemId=id;
+  renderItensOrcamento();
+}
+
+function cancelarEdicaoItem(){
+  editandoItemId=null;
+  renderItensOrcamento();
+}
+
+function salvarEdicaoItem(id){
+  const item=itensOrcamento.find(i=>i.id===id);
+  if(!item) return;
+  const qtdEl=document.getElementById('edit-qtd-'+id);
+  const totalEl=document.getElementById('edit-total-'+id);
+  const qtd=Math.max(1,parseInt(qtdEl&&qtdEl.value,10)||1);
+  const total=Math.max(0,parseFloat(totalEl&&totalEl.value)||0);
+  if(total<=0){
+    alert('Informe um valor total válido para o item.');
+    return;
+  }
+  item.qtd=qtd;
+  item.total=total;
+  item.unitario=total/qtd;
+  editandoItemId=null;
+  renderItensOrcamento();
+  salvarDados();
+}
+
+function limparOrcamento(){
+  if(!itensOrcamento.length) return;
+  if(!confirm('Deseja remover todos os produtos do orçamento?')) return;
+  itensOrcamento=[];
+  editandoItemId=null;
+  numeroOrcamentoAtual='';
+  renderItensOrcamento();
+  salvarDados();
 }
 
 function renderItensOrcamento(){
@@ -941,7 +1163,29 @@ function renderItensOrcamento(){
     return;
   }
 
-  lista.innerHTML = itensOrcamento.map(item => `
+  lista.innerHTML = itensOrcamento.map(item => {
+    if(editandoItemId===item.id){
+      return `
+    <div class="orc-item">
+      <div>
+        <div class="nome">${escapeHtml(item.nome)}</div>
+        <span class="sub">${escapeHtml(item.material || 'Material não informado')}</span>
+      </div>
+      <div>
+        <label style="font-size:11px;color:#8e949f;">Qtd.</label>
+        <input id="edit-qtd-${item.id}" type="number" min="1" step="1" value="${item.qtd}">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#8e949f;">Total (R$)</label>
+        <input id="edit-total-${item.id}" type="number" min="0" step="0.01" value="${item.total.toFixed(2)}">
+      </div>
+      <div class="orc-item-actions">
+        <button type="button" class="btn-salvar" onclick="salvarEdicaoItem(${item.id})">Salvar</button>
+        <button type="button" class="btn-excluir" onclick="cancelarEdicaoItem()">Cancelar</button>
+      </div>
+    </div>`;
+    }
+    return `
     <div class="orc-item">
       <div>
         <div class="nome">${escapeHtml(item.nome)}</div>
@@ -949,9 +1193,12 @@ function renderItensOrcamento(){
       </div>
       <div class="qtd">${item.qtd} un.</div>
       <div class="valor">${brl(item.total)}</div>
-      <button type="button" class="btn-excluir" onclick="excluirItemOrcamento(${item.id})">Excluir</button>
-    </div>
-  `).join('');
+      <div class="orc-item-actions">
+        <button type="button" class="btn-editar" onclick="iniciarEdicaoItem(${item.id})">Editar</button>
+        <button type="button" class="btn-excluir" onclick="excluirItemOrcamento(${item.id})">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
 
   count.textContent = itensOrcamento.length + (itensOrcamento.length === 1 ? ' ITEM' : ' ITENS');
   totalEl.textContent = brl(totalOrcamento());
@@ -968,15 +1215,19 @@ function escapeHtml(str){
 }
 
 function gerarNumeroOrcamento(){
+  if(numeroOrcamentoAtual) return numeroOrcamentoAtual;
   const d = new Date();
-  return 'ORC-' +
+  const rand = Math.random().toString(36).slice(2,6).toUpperCase();
+  numeroOrcamentoAtual = 'ORC-' +
     d.getFullYear().toString().slice(-2) +
     String(d.getMonth()+1).padStart(2,'0') +
     String(d.getDate()).padStart(2,'0') + '-' +
     String(d.getHours()).padStart(2,'0') +
-    String(d.getMinutes()).padStart(2,'0');
+    String(d.getMinutes()).padStart(2,'0') +
+    String(d.getSeconds()).padStart(2,'0') + '-' + rand;
+  salvarDados();
+  return numeroOrcamentoAtual;
 }
-
 
 function obterCorOrcamentoHex(){
   const tipo = document.getElementById('corOrcamento').value;
@@ -1178,10 +1429,26 @@ async function gerarPDFOrcamento(){
 
   let y = 50;
 
-  // Cartões: empresa e cliente
+  // Cartões: empresa e cliente, com altura dinâmica para textos maiores.
   const gap = 8;
   const boxW = (contentW - gap) / 2;
-  const boxH = 44;
+  const empresaNomeLines = doc.splitTextToSize(String(empresa), boxW - 10);
+  const clienteNomeLines = doc.splitTextToSize(String(cliente), boxW - 10);
+  const dadosEmpresa = [
+    docEmpresa ? 'CPF/CNPJ: ' + docEmpresa : '',
+    telefone ? 'Telefone: ' + telefone : '',
+    email ? 'E-mail: ' + email : '',
+    endereco || ''
+  ].filter(Boolean).map(t=>doc.splitTextToSize(String(t), boxW - 10));
+  const dadosCliente = [
+    clienteTel ? 'Telefone: ' + clienteTel : '',
+    'Validade: ' + validade + ' dia(s)',
+    'Prazo: ' + prazo
+  ].filter(Boolean).map(t=>doc.splitTextToSize(String(t), boxW - 10));
+
+  const alturaEmpresa = 18 + empresaNomeLines.length*4.4 + dadosEmpresa.reduce((a,l)=>a+l.length*4.1,0) + 6;
+  const alturaCliente = 18 + clienteNomeLines.length*4.4 + dadosCliente.reduce((a,l)=>a+l.length*4.1,0) + 6;
+  const boxH = Math.max(44, alturaEmpresa, alturaCliente);
 
   doc.setFillColor(...light);
   doc.setDrawColor(...border);
@@ -1197,37 +1464,22 @@ async function gerarPDFOrcamento(){
   doc.setTextColor(...dark);
   doc.setFont('helvetica','bold');
   doc.setFontSize(10);
-  doc.text(empresa, margin + 5, y + 15, {maxWidth: boxW - 10});
-  doc.text(cliente, margin + boxW + gap + 5, y + 15, {maxWidth: boxW - 10});
+  doc.text(empresaNomeLines, margin + 5, y + 15);
+  doc.text(clienteNomeLines, margin + boxW + gap + 5, y + 15);
 
   doc.setFont('helvetica','normal');
   doc.setFontSize(8.2);
   doc.setTextColor(...gray);
 
-  let leftY = y + 21;
-  let rightY = y + 21;
+  let leftY = y + 15 + empresaNomeLines.length*4.4 + 2;
+  let rightY = y + 15 + clienteNomeLines.length*4.4 + 2;
 
-  const dadosEmpresa = [
-    docEmpresa ? 'CPF/CNPJ: ' + docEmpresa : '',
-    telefone ? 'Telefone: ' + telefone : '',
-    email ? 'E-mail: ' + email : '',
-    endereco || ''
-  ].filter(Boolean);
-
-  for(const t of dadosEmpresa){
-    const lines = doc.splitTextToSize(String(t), boxW - 10);
+  for(const lines of dadosEmpresa){
     doc.text(lines, margin + 5, leftY);
     leftY += lines.length * 4.1;
   }
 
-  const dadosCliente = [
-    clienteTel ? 'Telefone: ' + clienteTel : '',
-    'Validade: ' + validade + ' dia(s)',
-    'Prazo: ' + prazo
-  ].filter(Boolean);
-
-  for(const t of dadosCliente){
-    const lines = doc.splitTextToSize(String(t), boxW - 10);
+  for(const lines of dadosCliente){
     doc.text(lines, margin + boxW + gap + 5, rightY);
     rightY += lines.length * 4.1;
   }
@@ -1312,48 +1564,57 @@ async function gerarPDFOrcamento(){
 
   y += 34;
 
-  // Condições
-  doc.setTextColor(...dark);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
-  doc.text('CONDIÇÕES DE PAGAMENTO', margin, y);
+  async function novaPaginaConteudo(){
+    doc.addPage('a4','portrait');
+    await cabecalho();
+    y=50;
+  }
 
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...gray);
-  const payLines = doc.splitTextToSize(pagamento, contentW);
-  doc.text(payLines, margin, y + 6);
+  async function escreverSecaoLonga(titulo,texto){
+    let linhas=doc.splitTextToSize(String(texto || '—'),contentW);
+    let primeira=true;
+    while(linhas.length){
+      const espacoTitulo=primeira?12:8;
+      const maxLinhas=Math.max(1,Math.floor((274-y-espacoTitulo)/4.3));
+      if(maxLinhas<1 || y>266){
+        await novaPaginaConteudo();
+        continue;
+      }
+      const bloco=linhas.splice(0,maxLinhas);
+      doc.setTextColor(...dark);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.text(primeira?titulo:titulo+' (continuação)', margin, y);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...gray);
+      doc.text(bloco, margin, y+6);
+      y += 10 + bloco.length*4.3;
+      primeira=false;
+      if(linhas.length) await novaPaginaConteudo();
+    }
+  }
 
-  y += 10 + (payLines.length * 4.3);
+  if(y>254) await novaPaginaConteudo();
+  await escreverSecaoLonga('CONDIÇÕES DE PAGAMENTO',pagamento);
+  y += 3;
+  if(y>260) await novaPaginaConteudo();
+  await escreverSecaoLonga('OBSERVAÇÕES',obs);
 
-  // Observações
-  doc.setTextColor(...dark);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
-  doc.text('OBSERVAÇÕES', margin, y);
-
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...gray);
-  const obsLines = doc.splitTextToSize(obs, contentW);
-  doc.text(obsLines, margin, y + 6);
-
-  // Rodapé limpo, sem tarja e sem assinatura Bobinou
+  // Rodapé final limpo.
   doc.setDrawColor(225,227,231);
   doc.setLineWidth(.3);
   doc.line(margin, 282, pageW - margin, 282);
-
   doc.setFont('helvetica','normal');
   doc.setFontSize(7.5);
   doc.setTextColor(135,140,148);
-  doc.text(empresa, margin, 288);
-
+  doc.text(empresa, margin, 288, {maxWidth:110});
   if(telefone){
-    doc.text(telefone, pageW - margin, 288, {align:'right'});
+    doc.text(telefone, pageW - margin, 288, {align:'right',maxWidth:60});
   }
 
   const safe = (cliente || 'cliente').replace(/[^\wÀ-ÿ-]+/g,'_');
-  doc.save('orcamento_' + safe + '.pdf');
+  doc.save('orcamento_' + safe + '_' + numero + '.pdf');
 }
 
 renderItensOrcamento();
