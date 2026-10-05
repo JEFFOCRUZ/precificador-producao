@@ -353,6 +353,10 @@ button{
   background:#0c0e12;
 }
 .preco-orcamento-box .grid{margin-top:0}
+.selected-price-box{margin-top:10px;padding:13px 14px;border:1px solid rgba(244,180,26,.34);border-radius:12px;background:rgba(244,180,26,.07);display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
+.selected-price-box small{font-size:9px;font-weight:900;letter-spacing:.5px;color:#9ca3af}
+.selected-price-box strong{grid-row:1/3;grid-column:2;font-size:20px;color:var(--gold2);white-space:nowrap}
+.selected-price-box span{font-size:11px;color:#c7cbd2}
 @media(max-width:700px){
   .orc-item{
     grid-template-columns:1fr;
@@ -846,6 +850,11 @@ document.addEventListener('DOMContentLoaded',()=>{window.scrollTo(0,0);setTimeou
         <option value="informado">Preço que pretendo cobrar</option>
         <option value="personalizado">Preço personalizado</option>
       </select>
+      <div class="selected-price-box" id="selectedPriceBox">
+        <small id="selectedPriceLabel">PREÇO RECOMENDADO</small>
+        <strong id="selectedPriceValue">R$ 0,00</strong>
+        <span id="selectedPriceUnit">R$ 0,00 por unidade</span>
+      </div>
     </div>
     <div class="field full" id="precoOrcamentoCustomWrap" style="display:none;">
       <label>Valor personalizado do lote (R$)</label>
@@ -1211,7 +1220,7 @@ function calcular(){
   const mercado=document.getElementById('comparacaoMercado');if(b.precoMercado>0){const unit=c.venda/b.qtd,dif=(unit/b.precoMercado-1)*100;mercado.style.display='block';mercado.innerHTML='<strong>Comparação de mercado:</strong> seu recomendado é '+brl(unit)+'/un. O mercado informado é '+brl(b.precoMercado)+'/un. Você está '+Math.abs(dif).toFixed(1).replace('.',',')+'% '+(dif<0?'abaixo':'acima')+' do valor informado.';}else mercado.style.display='none';
   const informado=numeroSeguro('precoInformado',0,1e9),grossInf=informado+b.freteCobrado,liqInf=grossInf*(1-c.pct)-b.taxaFixa,lucroInf=liqInf-c.custoOperacional,margInf=grossInf>0?lucroInf/grossInf*100:0;document.getElementById('rPrecoInformado').textContent=brl(informado);document.getElementById('rLucroInformado').textContent=brl(lucroInf);document.getElementById('rLucroUnidade').textContent=brl(lucroInf/b.qtd);document.getElementById('rMargemReal').textContent=margInf.toFixed(1).replace('.',',')+'%';
   ['lucroEstimado','lucroUnitario','lucroHoraReal'].forEach(id=>document.getElementById(id).className=c.lucro>=0?'profit':'loss');['rLucroInformado','rLucroUnidade'].forEach(id=>document.getElementById(id).className=lucroInf>=0?'profit':'loss');
-  renderSimulador(b);atualizarPrecoOrcamentoCustomWrap();atualizarTotaisOrcamento();if(!carregandoDados) salvarDados();
+  renderSimulador(b);atualizarPrecoOrcamentoCustomWrap();atualizarPrecoSelecionadoVisual();atualizarTotaisOrcamento();if(!carregandoDados) salvarDados();
 }
 
 document.getElementById('estadoEnergia').addEventListener('change',function(){
@@ -1240,8 +1249,11 @@ function atualizarPrecoOrcamentoCustomWrap(){
 
 document.getElementById('precoOrcamentoTipo').addEventListener('change',function(){
   atualizarPrecoOrcamentoCustomWrap();
+  atualizarPrecoSelecionadoVisual();
   if(!carregandoDados) salvarDados();
 });
+document.getElementById('precoOrcamentoCustom')?.addEventListener('input',atualizarPrecoSelecionadoVisual);
+document.getElementById('precoInformado')?.addEventListener('input',atualizarPrecoSelecionadoVisual);
 
 function salvarDados(){
   try{
@@ -1290,6 +1302,7 @@ function carregarDados(){
 if(!document.querySelector('.material-row')) adicionarMaterialLinha({nome:'PLA',preco:70,peso:0});
 carregarDados();
 calcular();
+atualizarPrecoSelecionadoVisual();
 
 document.getElementById('empresaLogo').addEventListener('change', function(e){
   const file = e.target.files && e.target.files[0];
@@ -1333,6 +1346,25 @@ function obterPrecoSelecionadoCalculadora(){
   if(tipo==='informado') return numeroSeguro('precoInformado',0,1000000000);
   if(tipo==='personalizado') return numeroSeguro('precoOrcamentoCustom',0,1000000000);
   return precosCalculados.rec;
+}
+
+function atualizarPrecoSelecionadoVisual(){
+  const tipo=document.getElementById('precoOrcamentoTipo')?.value||'recomendado';
+  const labels={
+    recomendado:'PREÇO RECOMENDADO',
+    minimo:'PREÇO MÍNIMO',
+    premium:'PREÇO PREMIUM',
+    informado:'PREÇO INFORMADO',
+    personalizado:'PREÇO PERSONALIZADO'
+  };
+  const valor=obterPrecoSelecionadoCalculadora();
+  const qtd=Math.max(1,numeroSeguro('qtd',1,100000,true));
+  const label=document.getElementById('selectedPriceLabel');
+  const total=document.getElementById('selectedPriceValue');
+  const unit=document.getElementById('selectedPriceUnit');
+  if(label) label.textContent=labels[tipo]||'PREÇO SELECIONADO';
+  if(total) total.textContent=brl(valor);
+  if(unit) unit.textContent=brl(valor/qtd)+' por unidade';
 }
 
 function adicionarProdutoAoOrcamento(){
@@ -1969,7 +2001,7 @@ renderItensOrcamento();
 
   const simpleReview=document.createElement('div');
   simpleReview.className='simple-price-review question-hidden';simpleReview.id='simplePriceReview';
-  simpleReview.innerHTML='<div class="spr"><small>Custo estimado</small><strong id="sprCost">R$ 0,00</strong></div><div class="spr main"><small>Preço recomendado</small><strong id="sprPrice">R$ 0,00</strong></div><div class="spr"><small>Preço por unidade</small><strong id="sprUnit">R$ 0,00</strong></div><div class="spr"><small>Lucro estimado</small><strong id="sprProfit">R$ 0,00</strong></div>';
+  simpleReview.innerHTML='<div class="spr"><small>Custo estimado</small><strong id="sprCost">R$ 0,00</strong></div><div class="spr main"><small>Preço escolhido</small><strong id="sprPrice">R$ 0,00</strong></div><div class="spr"><small>Preço por unidade</small><strong id="sprUnit">R$ 0,00</strong></div><div class="spr"><small>Lucro estimado</small><strong id="sprProfit">R$ 0,00</strong></div>';
   mainCard.appendChild(simpleReview);
 
   const addAnother=document.createElement('button');
@@ -2186,8 +2218,9 @@ renderItensOrcamento();
   function status(){
     const calc=ultimoCalculo||{};
     if(el('sprCost'))el('sprCost').textContent=brl(Number(calc.custoOperacional)||0);
-    if(el('sprPrice'))el('sprPrice').textContent=brl(Number(precosCalculados?.rec)||0);
-    if(el('sprUnit'))el('sprUnit').textContent=brl(n('qtd')>0?(Number(precosCalculados?.rec)||0)/n('qtd'):0);
+    const escolhido=typeof obterPrecoSelecionadoCalculadora==='function'?obterPrecoSelecionadoCalculadora():(Number(precosCalculados?.rec)||0);
+    if(el('sprPrice'))el('sprPrice').textContent=brl(escolhido);
+    if(el('sprUnit'))el('sprUnit').textContent=brl(n('qtd')>0?escolhido/n('qtd'):0);
     if(el('sprProfit'))el('sprProfit').textContent=brl(Number(calc.lucro)||0);
     const s1=validateMacro1();
     const s2=itensOrcamento.length>0;
