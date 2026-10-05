@@ -1913,7 +1913,9 @@ renderItensOrcamento();
 
   const oldAdd=window.adicionarProdutoAoOrcamento;
   window.adicionarProdutoAoOrcamento=function(){
-    if(!validar1()||!validar2()||!validar3()){mostrar(1,true);return}
+    if(!validar1()){mostrar(1,true);return}
+    if(!validar2()){mostrar(2,true);return}
+    if(!validar3()){mostrar(3,true);return}
     const antes=itensOrcamento.length;
     oldAdd();
     if(itensOrcamento.length>antes){
