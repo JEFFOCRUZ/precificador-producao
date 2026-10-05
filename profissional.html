@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded',()=>{window.scrollTo(0,0);setTimeou
 
           <div class="field">
             <label>Lucro mínimo por hora de máquina (R$)</label>
-            <input id="lucroHora" type="number" min="0" step="0.50" value="8">
+            <input id="lucroHora" type="number" min="0" step="0.50" value="20">
           </div>
 
           <div class="field"><label>Canal de venda</label><select id="canalVenda"><option>Venda direta</option><option>Site próprio</option><option>Mercado Livre</option><option>Shopee</option><option>Amazon</option><option>Etsy</option><option>Outro</option></select><div class="hint">As taxas mudam com o tempo e com a conta. Informe abaixo os percentuais reais do seu canal.</div></div>
@@ -1924,7 +1924,7 @@ renderItensOrcamento();
     const set=(id,val)=>{const e=el(id);if(e&&(e.value===''||Number(e.value)===0))e.value=val};
     set('filamentoKg',95);set('energiaKwh',0.90);set('desgasteHora',2.50);
     set('valorHoraTrabalho',25);set('minutosTrabalho',10);set('minutosTrabalhoPorPeca',3);
-    set('margem',100);set('reservaFalha',10);set('pedidoMinimo',20);set('lucroHora',8);
+    set('margem',100);set('reservaFalha',10);set('pedidoMinimo',20);set('lucroHora',20);
     try{calcular();salvarDados()}catch(e){}
   }
   applySuggestedDefaults();
@@ -1948,7 +1948,7 @@ renderItensOrcamento();
   const q2=[
     {title:'Qual impressora e custo de energia?',text:'Escolha a impressora. Se não souber sua tarifa exata de energia, a sugestão de R$ 0,90/kWh serve como ponto de partida e pode ser alterada.',example:'Para maior precisão, use o valor real da sua conta de luz.',ids:['impressora','estadoEnergia','energiaKwh'],defaults:'Sugestão inicial: energia R$ 0,90/kWh e desgaste/manutenção R$ 2,50/h.',check:()=>{if(n('energiaKwh')<=0)return fail(['Informe a tarifa de energia.'],['energiaKwh']);if(!cabeNaImpressora())return fail(['A peça ('+dimensoesTexto()+') não cabe no volume conhecido da impressora selecionada.'],['impressora']);return true}},
     {title:'Quanto vale o seu trabalho?',text:'Inclua o tempo humano: preparar a máquina, retirar a peça, acabamento e embalagem. Isso não é o tempo que a impressora fica rodando sozinha.',example:'Já deixamos R$ 25/h, 10 min de preparação e 3 min por peça como ponto de partida.',ids:['valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','extras'],defaults:'Esses valores são editáveis. Extras podem incluir embalagem, argola, parafuso, cola etc.',check:()=>n('valorHoraTrabalho')>0?true:fail(['Informe o valor da sua hora de trabalho.'],['valorHoraTrabalho'])},
-    {title:'Quanto de segurança e lucro você quer?',text:'A reserva de falha protege contra reimpressões. O markup é o quanto será acrescentado ao custo antes das taxas.',example:'100% de markup significa custo × 2 antes dos ajustes de taxas. 10% de falhas é uma reserva conservadora para começar.',ids:['margem','reservaFalha','pedidoMinimo','lucroHora'],defaults:'Sugestões: markup 100%, falhas 10%, pedido mínimo R$ 20, lucro mínimo de máquina R$ 8/h.',check:()=>n('margem')>0?true:fail(['Informe um markup maior que zero.'],['margem'])},
+    {title:'Quanto de segurança e lucro você quer?',text:'A reserva de falha protege contra reimpressões. O markup é o quanto será acrescentado ao custo antes das taxas.',example:'100% de markup significa custo × 2 antes dos ajustes de taxas. 10% de falhas é uma reserva conservadora para começar.',ids:['margem','reservaFalha','pedidoMinimo','lucroHora'],defaults:'Sugestões: markup 100%, falhas 10%, pedido mínimo R$ 20 e lucro mínimo de máquina R$ 20/h.',check:()=>n('margem')>0?true:fail(['Informe um markup maior que zero.'],['margem'])},
     {title:'Confira o preço antes de adicionar',text:'Revise o resumo abaixo. Se você vende em marketplace, tem impostos, modelagem ou frete, abra “Opções avançadas” antes de confirmar.',example:'O sistema não deixa usar taxas totais de 95% ou mais e recalcula o preço para absorver as taxas informadas.',special:'review',check:()=>{
       if(somaTaxas()>=95)return fail(['Revise as taxas: a soma deve ficar abaixo de 95%.'],['taxa','taxaPagamento','taxaAds','impostos']);
       const canal=v('canalVenda');if(['Mercado Livre','Shopee','Amazon','Etsy'].includes(canal)&&n('taxa')<=0)return fail(['Informe a comissão real do marketplace em Opções avançadas.'],['taxa']);
@@ -1985,7 +1985,15 @@ renderItensOrcamento();
     if(priceBox)priceBox.classList.add('question-hidden');
     if(addActions)addActions.classList.add('question-hidden');
   }
-  function showNode(x){if(x){x.classList.remove('question-hidden');x.classList.add('question-current')}}
+  function showNode(x){
+    if(!x)return;
+    x.classList.remove('question-hidden');x.classList.add('question-current');
+    let p=x.parentElement;
+    while(p&&p!==mainCard&&p!==quote){
+      if(p.classList&&p.classList.contains('section'))p.classList.remove('question-hidden');
+      p=p.parentElement;
+    }
+  }
   function showFields(ids){ids.forEach(id=>showNode(field(id)))}
 
   function renderQuestion(noScroll=false){
@@ -2017,7 +2025,7 @@ renderItensOrcamento();
       }
     }else{
       showNode(quote);showNode(quote.querySelector('.quote-head'));showFields(q.ids||[]);
-      if(qIndex===0){const opt=el('quoteOptional');if(opt)showNode(opt)}
+      if(qIndex===0){const opt=el('quoteOptional');if(opt){showNode(opt);opt.querySelectorAll('.field').forEach(showNode)}}
       if(q.special==='quoteFinal'){
         quote.querySelectorAll('.orc-lista,.orc-summary,.quote-actions').forEach(showNode);
         showFields(['orcFrete','orcDesconto']);
