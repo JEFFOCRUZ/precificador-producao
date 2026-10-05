@@ -2107,15 +2107,44 @@ renderItensOrcamento();
   const oldPreview=window.gerarPreviewOrcamento;
   window.gerarPreviewOrcamento=function(){
     const sub=subtotalOrcamento(),frete=n('orcFrete'),desc=n('orcDesconto');
-    if(!v('empresaNome')||!v('clienteNome')||!v('orcPrazo')||!v('orcPagamento')){macro=3;qIndex=0;renderQuestion();return}
-    if(desc>sub+frete||totalOrcamento()<=0){macro=3;qIndex=q3.length-1;renderQuestion();fail(['Revise desconto e total final.'],['orcDesconto']);return}
+    if(!v('empresaNome')||!v('clienteNome')||!v('orcPrazo')||!v('orcPagamento')){
+      macro=3;qIndex=0;renderQuestion();
+      fail(['Preencha empresa, cliente, prazo e condições de pagamento antes de visualizar.'],['empresaNome','clienteNome','orcPrazo','orcPagamento']);
+      return;
+    }
+    if(desc>sub+frete||totalOrcamento()<=0){
+      macro=3;qIndex=q3.length-1;renderQuestion();
+      fail(['Revise desconto e total final.'],['orcDesconto']);
+      return;
+    }
+    // O assistente esconde a prévia entre perguntas; libere-a antes de renderizar.
+    showNode(quote);
+    const preview=el('quotePreview');
+    if(preview) preview.classList.remove('question-hidden');
+    const actions=quote.querySelector('.quote-actions');
+    if(actions) actions.classList.remove('question-hidden');
     oldPreview();
+    if(preview){
+      preview.classList.remove('question-hidden');
+      preview.style.display='block';
+      setTimeout(()=>preview.scrollIntoView({behavior:'smooth',block:'start'}),40);
+    }
   };
   const oldPDF=window.gerarPDFOrcamento;
   window.gerarPDFOrcamento=async function(){
     const sub=subtotalOrcamento(),frete=n('orcFrete'),desc=n('orcDesconto');
-    if(!v('empresaNome')||!v('clienteNome')||!v('orcPrazo')||!v('orcPagamento')){macro=3;qIndex=0;renderQuestion();return}
-    if(desc>sub+frete||totalOrcamento()<=0){macro=3;qIndex=q3.length-1;renderQuestion();fail(['Revise desconto e total final.'],['orcDesconto']);return}
+    if(!v('empresaNome')||!v('clienteNome')||!v('orcPrazo')||!v('orcPagamento')){
+      macro=3;qIndex=0;renderQuestion();
+      fail(['Preencha empresa, cliente, prazo e condições de pagamento antes de gerar o PDF.'],['empresaNome','clienteNome','orcPrazo','orcPagamento']);
+      return;
+    }
+    if(desc>sub+frete||totalOrcamento()<=0){
+      macro=3;qIndex=q3.length-1;renderQuestion();
+      fail(['Revise desconto e total final.'],['orcDesconto']);
+      return;
+    }
+    const preview=el('quotePreview');
+    if(preview) preview.classList.remove('question-hidden');
     await oldPDF();
   };
 
