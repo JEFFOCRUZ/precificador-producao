@@ -454,6 +454,10 @@ document.addEventListener('DOMContentLoaded',()=>{window.scrollTo(0,0);setTimeou
 .simple-defaults{margin:10px 0 0;font-size:10px;color:#808895}.simple-defaults strong{color:#cbd0d7}
 .optional-link{margin-top:10px;font-size:11px;color:#9da4ae}.optional-link button{height:auto;padding:0;background:none;color:var(--gold2);font-size:11px;text-decoration:underline}
 .quote-optional{margin:14px 0;border:1px solid #303640;border-radius:13px;background:#0c0e12;overflow:hidden}.quote-optional summary{cursor:pointer;padding:12px 14px;font-size:11px;font-weight:800;color:#d8dce3}.quote-optional .inside{padding:0 12px 12px}
+.simple-price-review{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:10px 0 14px}
+.simple-price-review .spr{padding:13px;border:1px solid #303640;border-radius:12px;background:#0c0e12}
+.simple-price-review small{display:block;color:#858c97;font-size:9px;text-transform:uppercase;margin-bottom:5px}.simple-price-review strong{font-size:15px;color:#fff}.simple-price-review .main strong{color:var(--gold2)}
+@media(max-width:800px){.simple-price-review{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.quick-start{align-items:flex-start;flex-direction:column}.quick-start button{width:100%}.question-actions{display:grid;grid-template-columns:1fr 1fr}.question-actions .primary{margin-left:0}.question-actions button{width:100%}}
 </style>
 </head>
@@ -1860,6 +1864,11 @@ renderItensOrcamento();
   help.innerHTML='<div class="q-progress" id="qProgress"></div><h4 id="qTitle"></h4><p id="qText"></p><div class="q-example" id="qExample"></div><div class="simple-defaults" id="qDefaults"></div>';
   mainCard.insertBefore(help,summary.nextSibling);
 
+  const simpleReview=document.createElement('div');
+  simpleReview.className='simple-price-review question-hidden';simpleReview.id='simplePriceReview';
+  simpleReview.innerHTML='<div class="spr"><small>Custo estimado</small><strong id="sprCost">R$ 0,00</strong></div><div class="spr main"><small>Preço recomendado</small><strong id="sprPrice">R$ 0,00</strong></div><div class="spr"><small>Preço por unidade</small><strong id="sprUnit">R$ 0,00</strong></div><div class="spr"><small>Lucro estimado</small><strong id="sprProfit">R$ 0,00</strong></div>';
+  mainCard.appendChild(simpleReview);
+
   const qActions=document.createElement('div');
   qActions.className='question-actions';qActions.id='questionActions';
   qActions.innerHTML='<button type="button" class="secondary" id="qBack">← Voltar</button><button type="button" class="secondary" id="qAdvanced">Opções avançadas</button><button type="button" class="primary" id="qNext">Continuar →</button>';
@@ -1973,6 +1982,7 @@ renderItensOrcamento();
   function questions(){return macro===1?q1:macro===2?q2:q3}
 
   function hideQuestionNodes(){
+    simpleReview.classList.add('question-hidden');
     [step1Grid,machineSection,saleSection,quote].forEach(root=>{
       if(!root)return;
       root.querySelectorAll('.field,.size-check-card,.advanced-box,.review-snapshot,.result,.preco-orcamento-box,.actions,.orc-lista,.orc-summary,.quote-actions,.quote-preview,.section,.quote-head,.quote-optional').forEach(x=>x.classList.add('question-hidden'));
@@ -2018,10 +2028,10 @@ renderItensOrcamento();
       showNode(machineSection);showNode(saleSection);
       showFields(q.ids||[]);
       if(q.special==='review'){
-        showNode(resultCard);showNode(priceBox);showNode(addActions);showNode(field('revisaoCustos'));
-        saleSection.querySelectorAll('.advanced-box').forEach(box=>{showNode(box);box.querySelectorAll('.field').forEach(showNode)});
-        machineSection.querySelectorAll('.advanced-box').forEach(box=>{showNode(box);box.querySelectorAll('.field').forEach(showNode)});
-        const snap=el('reviewSnapshot');if(snap)showNode(snap);
+        showNode(simpleReview);showNode(priceBox);if(priceBox)priceBox.querySelectorAll('.field').forEach(showNode);
+        showNode(addActions);showNode(field('revisaoCustos'));
+        saleSection.querySelectorAll('.advanced-box').forEach(showNode);
+        machineSection.querySelectorAll('.advanced-box').forEach(showNode);
       }
     }else{
       showNode(quote);showNode(quote.querySelector('.quote-head'));showFields(q.ids||[]);
@@ -2050,6 +2060,11 @@ renderItensOrcamento();
     return n('horas')>0||n('minutos')>0;
   }
   function status(){
+    const calc=ultimoCalculo||{};
+    if(el('sprCost'))el('sprCost').textContent=brl(Number(calc.custoOperacional)||0);
+    if(el('sprPrice'))el('sprPrice').textContent=brl(Number(precosCalculados?.rec)||0);
+    if(el('sprUnit'))el('sprUnit').textContent=brl(n('qtd')>0?(Number(precosCalculados?.rec)||0)/n('qtd'):0);
+    if(el('sprProfit'))el('sprProfit').textContent=brl(Number(calc.lucro)||0);
     const s1=validateMacro1();
     const s2=itensOrcamento.length>0;
     const s3=itensOrcamento.length>0&&v('empresaNome')&&v('clienteNome')&&v('orcPrazo')&&v('orcPagamento')&&totalOrcamento()>0;
@@ -2112,6 +2127,7 @@ renderItensOrcamento();
   el('qNext').addEventListener('click',goNext);el('qBack').addEventListener('click',goBack);
   el('qAdvanced').addEventListener('click',()=>{
     if(macro!==2)return;
+    showNode(resultCard);
     machineSection?.querySelectorAll('.advanced-box').forEach(x=>{showNode(x);x.open=true;x.querySelectorAll('.field').forEach(showNode)});
     saleSection?.querySelectorAll('.advanced-box').forEach(x=>{showNode(x);x.open=true;x.querySelectorAll('.field').forEach(showNode)});
   });
