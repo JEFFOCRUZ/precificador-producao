@@ -1658,9 +1658,13 @@ async function gerarPDFOrcamento(){
   }
 
   async function cabecalho(){
-    // Fundo totalmente branco - sem faixa preta
+    // Fundo branco com assinatura visual no topo.
     doc.setFillColor(255,255,255);
     doc.rect(0,0,pageW,pageH,'F');
+    doc.setFillColor(...dark);
+    doc.rect(0,0,pageW,4,'F');
+    doc.setFillColor(...gold);
+    doc.rect(0,4,pageW,1.2,'F');
 
     // Logo proporcional
     const logoUsada = logoEmpresaData || document.querySelector('.logo-box img').src;
@@ -1678,12 +1682,15 @@ async function gerarPDFOrcamento(){
     doc.setFont('helvetica','bold');
     doc.setFontSize(22);
     doc.text('ORÇAMENTO', pageW - margin, 19, {align:'right'});
+    doc.setFontSize(7);
+    doc.setTextColor(...gold);
+    doc.text('PROPOSTA COMERCIAL', pageW - margin, 34, {align:'right'});
 
     doc.setFont('helvetica','normal');
     doc.setFontSize(8.5);
     doc.setTextColor(...gray);
     doc.text(numero, pageW - margin, 25, {align:'right'});
-    doc.text('Emitido em ' + data.toLocaleDateString('pt-BR'), pageW - margin, 30, {align:'right'});
+    doc.text('Emitido em ' + data.toLocaleDateString('pt-BR'), pageW - margin, 29, {align:'right'});
 
     // Linha dourada elegante
     doc.setDrawColor(...gold);
