@@ -430,6 +430,10 @@ button{
 .safety-note{grid-column:1/-1;padding:12px 14px;border-radius:12px;border:1px solid rgba(74,222,128,.22);background:rgba(74,222,128,.055);font-size:11px;line-height:1.55;color:#b8c2bc}
 .safety-note strong{color:#86efac}.live-warning{grid-column:1/-1;display:none;padding:12px 14px;border-radius:12px;border:1px solid rgba(251,113,133,.38);background:rgba(251,113,133,.08);font-size:11px;line-height:1.55;color:#fecdd3}
 .field-ok input,.field-ok select{border-color:rgba(74,222,128,.5)}.wizard-step.locked{opacity:.58}
+.review-snapshot{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:2px 0 4px}
+.review-snapshot .snap{background:#11151a;border:1px solid #2d333d;border-radius:12px;padding:11px}
+.review-snapshot small{display:block;color:#7f8793;font-size:9px;text-transform:uppercase;letter-spacing:.45px;margin-bottom:5px}.review-snapshot strong{font-size:12px;line-height:1.35;color:#f2f4f7}
+@media(max-width:800px){.review-snapshot{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.advanced-box .grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -1941,6 +1945,22 @@ renderItensOrcamento();
       const e=document.getElementById('statusEtapa'+(i+1)); if(e)e.textContent=ok?'Concluída':'Pendente';
       const b=document.querySelector('.wizard-step[data-step="'+(i+1)+'"]'); if(b)b.classList.toggle('complete',!!ok);
     });
+    const snapPeca=document.getElementById('snapPeca'),snapProducao=document.getElementById('snapProducao'),snapCustos=document.getElementById('snapCustos'),snapPreco=document.getElementById('snapPreco');
+    if(snapPeca) snapPeca.textContent=(v('produtoNome')||'Sem nome')+' · '+(nv('dimensaoX')>0?dimensoesTexto():'medidas pendentes');
+    if(snapProducao){
+      const b=typeof parametrosBase==='function'?parametrosBase():null;
+      const peso=b?(b.multi?(b.materiais||[]).reduce((s,m)=>s+(Number(m.peso)||0),0):b.peso*b.qtd):0;
+      const tempo=b?b.tempoPorPeca*b.qtd:0;
+      snapProducao.textContent=(b?b.qtd:0)+' un. · '+peso.toLocaleString('pt-BR',{maximumFractionDigits:1})+' g · '+(typeof formatarHoras==='function'?formatarHoras(tempo):tempo+' h');
+    }
+    if(snapCustos){
+      const custo=ultimoCalculo&&Number.isFinite(ultimoCalculo.custoOperacional)?ultimoCalculo.custoOperacional:0;
+      snapCustos.textContent=brl(custo)+' · taxas '+somaTaxas().toFixed(1).replace('.',',')+'%';
+    }
+    if(snapPreco){
+      const p=precosCalculados&&Number.isFinite(precosCalculados.rec)?precosCalculados.rec:0;
+      snapPreco.textContent=brl(p)+(nv('qtd')>0?' · '+brl(p/nv('qtd'))+'/un.':'');
+    }
     const live=document.getElementById('liveSafetyWarning');
     if(live){
       const avisos=[];
@@ -1980,6 +2000,9 @@ renderItensOrcamento();
     const grid=step3.querySelector('.grid');
     if(grid){
       const live=document.createElement('div'); live.id='liveSafetyWarning'; live.className='live-warning'; grid.prepend(live);
+      const snap=document.createElement('div'); snap.id='reviewSnapshot'; snap.className='review-snapshot';
+      snap.innerHTML='<div class="snap"><small>Peça / medidas</small><strong id="snapPeca">—</strong></div><div class="snap"><small>Produção</small><strong id="snapProducao">—</strong></div><div class="snap"><small>Custos e taxas</small><strong id="snapCustos">—</strong></div><div class="snap"><small>Preço recomendado</small><strong id="snapPreco">—</strong></div>';
+      grid.appendChild(snap);
       const grupos=[
         {titulo:'Modelagem e custos fixos',ids:['minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes']},
         {titulo:'Marketplace, taxas e impostos',ids:['canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda']},
