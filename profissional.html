@@ -1933,7 +1933,15 @@ renderItensOrcamento();
     {title:'O que você vai imprimir?',text:'Dê um nome simples para identificar a peça no orçamento.',example:'Ex.: Suporte de celular, chaveiro com nome, peça técnica.',ids:['produtoNome'],check:()=>v('produtoNome')?true:fail(['Informe o nome da peça.'],['produtoNome'])},
     {title:'Qual é o tamanho final da peça?',text:'Copie as medidas finais pedidas pelo cliente. Confira também no arquivo ou no slicer antes de confirmar.',example:'Use milímetros: X = largura, Y = profundidade, Z = altura.',special:'size',check:()=>n('dimensaoX')>0&&n('dimensaoY')>0&&n('dimensaoZ')>0&&el('medidasConferidas').checked?true:fail(['Preencha X, Y e Z e marque que conferiu as medidas.'],['dimensaoX','dimensaoY','dimensaoZ','medidasConferidas'])},
     {title:'Qual material será usado?',text:'Escolha o material. Para um único filamento, deixe “Um material”. O valor do rolo já vem com uma sugestão e você pode trocar.',example:'PLA é o mais comum. Se o seu rolo custa R$ 110, troque R$ 95 por R$ 110.',ids:['material','filamentoKg','modoMaterial'],defaults:'Sugestão inicial: R$ 95/kg. Referências atuais consultadas ficam aproximadamente entre R$ 80 e R$ 120/kg.',check:()=>v('modoMaterial')==='multi'||n('filamentoKg')>0?true:fail(['Informe o preço do filamento por kg.'],['filamentoKg'])},
-    {title:'Quanto pesa e quantas unidades?',text:'Copie o peso mostrado pelo slicer para UMA peça e informe quantas unidades o cliente quer.',example:'Ex.: slicer mostra 42 g por peça e o cliente quer 5 unidades.',ids:['peso','qtd'],check:()=>n('peso')>0&&n('qtd')>=1?true:fail(['Informe peso por peça e quantidade.'],['peso','qtd'])},
+    {title:'Quanto pesa e quantas unidades?',text:'Copie o peso mostrado pelo slicer e informe quantas unidades o cliente quer. No multimaterial, preencha o peso de cada material.',example:'Ex.: peça comum: 42 g por peça e 5 unidades. No AMS: informe o peso total de cada cor/material.',ids:['peso','qtd'],special:'weight',check:()=>{
+      if(n('qtd')<1)return fail(['Informe a quantidade.'],['qtd']);
+      if(v('modoMaterial')==='multi'){
+        const rows=[...document.querySelectorAll('.material-row')];
+        const ok=rows.length&&rows.every(r=>(parseFloat(r.querySelector('.mat-preco')?.value)||0)>0&&(parseFloat(r.querySelector('.mat-peso')?.value)||0)>0);
+        return ok?true:fail(['No multimaterial, informe preço e peso de cada material.']);
+      }
+      return n('peso')>0?true:fail(['Informe o peso por peça.'],['peso']);
+    }},
     {title:'Quanto tempo leva para imprimir?',text:'Copie o tempo do slicer. Se ele mostra o tempo de uma única peça, mantenha “Uma peça”.',example:'Ex.: 2 h 35 min por peça.',ids:['horas','minutos','modoTempo'],check:()=>n('horas')>0||n('minutos')>0?true:fail(['Informe o tempo de impressão.'],['horas','minutos'])}
   ];
 
@@ -1993,13 +2001,18 @@ renderItensOrcamento();
     if(macro===1){
       showNode(step1Grid);showFields(q.ids||[]);
       if(q.special==='size')showNode(step1Grid.querySelector('.size-check-card'));
-      if(q.ids&&q.ids.includes('modoMaterial')&&v('modoMaterial')==='multi')showNode(el('multiMaterialWrap'));
+      if((q.ids&&q.ids.includes('modoMaterial')||q.special==='weight')&&v('modoMaterial')==='multi'){
+        const pw=field('peso');if(pw)pw.classList.add('question-hidden');
+        showNode(el('multiMaterialWrap'));
+        el('multiMaterialWrap')?.querySelectorAll('.field,.material-row').forEach(showNode);
+      }
     }else if(macro===2){
       showNode(machineSection);showNode(saleSection);
       showFields(q.ids||[]);
       if(q.special==='review'){
         showNode(resultCard);showNode(priceBox);showNode(addActions);showNode(field('revisaoCustos'));
-        saleSection.querySelectorAll('.advanced-box').forEach(showNode);
+        saleSection.querySelectorAll('.advanced-box').forEach(box=>{showNode(box);box.querySelectorAll('.field').forEach(showNode)});
+        machineSection.querySelectorAll('.advanced-box').forEach(box=>{showNode(box);box.querySelectorAll('.field').forEach(showNode)});
         const snap=el('reviewSnapshot');if(snap)showNode(snap);
       }
     }else{
@@ -2019,8 +2032,13 @@ renderItensOrcamento();
   function validateMacro1(){
     if(!v('produtoNome'))return false;
     if(n('dimensaoX')<=0||n('dimensaoY')<=0||n('dimensaoZ')<=0||!el('medidasConferidas').checked)return false;
-    if(v('modoMaterial')!=='multi'&&n('filamentoKg')<=0)return false;
-    if(n('peso')<=0||n('qtd')<1)return false;
+    if(n('qtd')<1)return false;
+    if(v('modoMaterial')==='multi'){
+      const rows=[...document.querySelectorAll('.material-row')];
+      if(!rows.length||!rows.every(r=>(parseFloat(r.querySelector('.mat-preco')?.value)||0)>0&&(parseFloat(r.querySelector('.mat-peso')?.value)||0)>0))return false;
+    }else{
+      if(n('filamentoKg')<=0||n('peso')<=0)return false;
+    }
     return n('horas')>0||n('minutos')>0;
   }
   function status(){
@@ -2086,8 +2104,8 @@ renderItensOrcamento();
   el('qNext').addEventListener('click',goNext);el('qBack').addEventListener('click',goBack);
   el('qAdvanced').addEventListener('click',()=>{
     if(macro!==2)return;
-    machineSection?.querySelectorAll('.advanced-box').forEach(x=>{x.classList.remove('question-hidden');x.open=true});
-    saleSection?.querySelectorAll('.advanced-box').forEach(x=>{x.classList.remove('question-hidden');x.open=true});
+    machineSection?.querySelectorAll('.advanced-box').forEach(x=>{showNode(x);x.open=true;x.querySelectorAll('.field').forEach(showNode)});
+    saleSection?.querySelectorAll('.advanced-box').forEach(x=>{showNode(x);x.open=true;x.querySelectorAll('.field').forEach(showNode)});
   });
   macroButtons.forEach(b=>b.addEventListener('click',()=>{
     const target=Number(b.dataset.step);
