@@ -421,6 +421,21 @@ button{
 .guided-hidden{display:none!important}
 @media(max-width:760px){.wizard-nav{grid-template-columns:1fr 1fr;position:static}.wizard-step{min-height:58px}.dimensions-grid{grid-template-columns:1fr}.size-check-title{display:block}.size-check-title span{display:block;margin-top:4px}}
 </style>
+
+<style id="hardening-style">
+.advanced-box{grid-column:1/-1;border:1px solid #303640;border-radius:14px;background:#0c0e12;overflow:hidden}
+.advanced-box summary{list-style:none;cursor:pointer;padding:14px 16px;font-size:12px;font-weight:900;color:#f3f4f6;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.advanced-box summary::-webkit-details-marker{display:none}.advanced-box summary:after{content:'+';font-size:20px;color:var(--gold2)}.advanced-box[open] summary:after{content:'−'}
+.advanced-box .advanced-content{padding:0 14px 14px}.advanced-box .grid{margin-top:2px}
+.safety-note{grid-column:1/-1;padding:12px 14px;border-radius:12px;border:1px solid rgba(74,222,128,.22);background:rgba(74,222,128,.055);font-size:11px;line-height:1.55;color:#b8c2bc}
+.safety-note strong{color:#86efac}.live-warning{grid-column:1/-1;display:none;padding:12px 14px;border-radius:12px;border:1px solid rgba(251,113,133,.38);background:rgba(251,113,133,.08);font-size:11px;line-height:1.55;color:#fecdd3}
+.field-ok input,.field-ok select{border-color:rgba(74,222,128,.5)}.wizard-step.locked{opacity:.58}
+.review-snapshot{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:2px 0 4px}
+.review-snapshot .snap{background:#11151a;border:1px solid #2d333d;border-radius:12px;padding:11px}
+.review-snapshot small{display:block;color:#7f8793;font-size:9px;text-transform:uppercase;letter-spacing:.45px;margin-bottom:5px}.review-snapshot strong{font-size:12px;line-height:1.35;color:#f2f4f7}
+@media(max-width:800px){.review-snapshot{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.advanced-box .grid{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
@@ -1807,6 +1822,7 @@ renderItensOrcamento();
   const sections=direct.filter(el=>el.classList && el.classList.contains('section'));
   const step2=sections[0], step3=sections[1];
   let etapaAtual=1;
+  let iniciando=true;
 
   const summary=document.createElement('div');
   summary.className='validation-summary';
@@ -1819,17 +1835,27 @@ renderItensOrcamento();
   mainCard.appendChild(actions);
 
   function v(id){const el=document.getElementById(id);return el ? String(el.value||'').trim() : ''}
-  function nv(id){return parseFloat(v(id))||0}
+  function nv(id){const x=parseFloat(v(id));return Number.isFinite(x)?x:0}
   function clearErrors(){document.querySelectorAll('.field-invalid').forEach(el=>el.classList.remove('field-invalid'));summary.style.display='none';summary.innerHTML=''}
-  function mark(id){const el=document.getElementById(id);if(!el)return;const field=el.closest('.field')||el;field.classList.add('field-invalid')}
+  function mark(id){const el=document.getElementById(id);if(!el)return;const field=el.closest('.field')||el.closest('.size-check-card')||el;field.classList.add('field-invalid')}
   function fail(msgs,ids=[]){
     clearErrors(); ids.forEach(mark);
     summary.innerHTML='<strong>Confira antes de continuar:</strong><br>• '+msgs.join('<br>• ');
     summary.style.display='block';
+    summary.classList.remove('guided-hidden');
     summary.scrollIntoView({behavior:'smooth',block:'center'});
     return false;
   }
   function dimensoesTexto(){return nv('dimensaoX').toLocaleString('pt-BR')+' × '+nv('dimensaoY').toLocaleString('pt-BR')+' × '+nv('dimensaoZ').toLocaleString('pt-BR')+' mm'}
+  function somaTaxas(){return nv('taxa')+nv('taxaPagamento')+nv('taxaAds')+nv('impostos')}
+  function cabeNaImpressora(){
+    const mapa={'90':[180,180,180],'110':[256,256,256],'120':[256,256,256],'140':[256,256,256]};
+    const vol=mapa[v('impressora')];
+    if(!vol) return true;
+    const p=[nv('dimensaoX'),nv('dimensaoY'),nv('dimensaoZ')].sort((a,b)=>a-b);
+    const b=[...vol].sort((a,b)=>a-b);
+    return p.every((x,i)=>x<=b[i]);
+  }
 
   function validar1(){
     const msgs=[],ids=[];
@@ -1838,51 +1864,113 @@ renderItensOrcamento();
     if(!document.getElementById('medidasConferidas').checked){msgs.push('Marque que conferiu as medidas com o cliente e com o arquivo/slicer.');ids.push('medidasConferidas')}
     if(nv('qtd')<1){msgs.push('Informe uma quantidade válida.');ids.push('qtd')}
     if(document.getElementById('modoMaterial').value==='multi'){
-      const mats=coletarMateriaisMulti().filter(m=>m.preco>0&&m.peso>0);
-      if(!mats.length) msgs.push('No multimaterial, informe preço e peso de pelo menos um material.');
+      const rows=[...document.querySelectorAll('.material-row')];
+      if(!rows.length) msgs.push('Adicione pelo menos um material no modo multimaterial.');
+      let totalPeso=0;
+      rows.forEach((r,i)=>{
+        const nome=(r.querySelector('.mat-nome')?.value||'').trim();
+        const preco=parseFloat(r.querySelector('.mat-preco')?.value)||0;
+        const peso=parseFloat(r.querySelector('.mat-peso')?.value)||0;
+        if(!nome||preco<=0||peso<=0) msgs.push('Complete nome, R$/kg e peso do material '+(i+1)+'.');
+        totalPeso+=Math.max(0,peso);
+      });
+      if(totalPeso<=0) msgs.push('O peso total dos materiais precisa ser maior que zero.');
     }else{
       if(nv('filamentoKg')<=0){msgs.push('Informe o valor do filamento por kg.');ids.push('filamentoKg')}
       if(nv('peso')<=0){msgs.push('Informe o peso por peça.');ids.push('peso')}
     }
     if(nv('horas')<=0&&nv('minutos')<=0){msgs.push('Informe o tempo de impressão.');ids.push('horas','minutos')}
-    return msgs.length?fail(msgs,ids):(clearErrors(),true);
+    return msgs.length?fail([...new Set(msgs)],ids):(clearErrors(),true);
   }
+
   function validar2(){
     const msgs=[],ids=[];
-    if(nv('energiaKwh')<=0){msgs.push('Informe a tarifa de energia em R$/kWh ou selecione o estado para preencher a referência.');ids.push('energiaKwh')}
+    if(nv('energiaKwh')<=0){msgs.push('Informe a tarifa de energia em R$/kWh ou selecione o estado.');ids.push('energiaKwh')}
     if(nv('potencia')<=0){msgs.push('Informe a potência média da impressora.');ids.push('potencia')}
     if(document.getElementById('desgasteModo').value==='auto'){
-      if(nv('valorImpressora')<=0){msgs.push('Informe o valor pago na impressora para calcular depreciação.');ids.push('valorImpressora')}
+      if(nv('valorImpressora')<=0){msgs.push('Informe o valor pago na impressora para calcular a depreciação.');ids.push('valorImpressora')}
       if(nv('vidaUtilHoras')<=0){msgs.push('Informe a vida útil considerada da impressora.');ids.push('vidaUtilHoras')}
+    }else if(nv('desgasteHora')<=0){
+      msgs.push('Informe um custo de desgaste/manutenção por hora maior que zero.');ids.push('desgasteHora')
+    }
+    if(!cabeNaImpressora()){
+      msgs.push('As dimensões '+dimensoesTexto()+' não cabem no volume conhecido da impressora selecionada. Revise o modelo, a orientação ou as medidas.');
+      ids.push('impressora');
     }
     return msgs.length?fail(msgs,ids):(clearErrors(),true);
   }
+
   function validar3(){
-    if(!document.getElementById('revisaoCustos').checked) return fail(['Confirme que revisou mão de obra, modelagem, embalagem, taxas, impostos, frete, falhas e demais custos.'],['revisaoCustos']);
-    return clearErrors(),true;
+    const msgs=[],ids=[];
+    if(nv('margem')<=0){msgs.push('Informe um markup desejado maior que zero.');ids.push('margem')}
+    if(nv('valorHoraTrabalho')<=0){msgs.push('Informe o valor da sua hora de trabalho.');ids.push('valorHoraTrabalho')}
+    if(nv('minutosModelagem')>0 && nv('valorHoraModelagem')<=0){msgs.push('Há tempo de modelagem informado, mas o valor/hora de modelagem está zerado.');ids.push('valorHoraModelagem')}
+    if(somaTaxas()>=95){msgs.push('A soma de comissão, pagamento, anúncios e impostos deve ficar abaixo de 95%.');ids.push('taxa','taxaPagamento','taxaAds','impostos')}
+    const canal=v('canalVenda');
+    if(['Mercado Livre','Shopee','Amazon','Etsy'].includes(canal) && nv('taxa')<=0){msgs.push('O canal selecionado normalmente cobra comissão. Informe a comissão real da sua conta antes de continuar.');ids.push('taxa')}
+    if(!document.getElementById('revisaoCustos').checked){msgs.push('Confirme que revisou mão de obra, modelagem, embalagem, taxas, impostos, frete, falhas e demais custos.');ids.push('revisaoCustos')}
+    const tipo=v('precoOrcamentoTipo');
+    if(tipo==='informado' && nv('precoInformado')<=0){msgs.push('Você escolheu usar o preço informado, mas esse valor está zerado.');ids.push('precoInformado')}
+    if(tipo==='personalizado' && nv('precoOrcamentoCustom')<=0){msgs.push('Informe o preço personalizado que será usado no orçamento.');ids.push('precoOrcamentoCustom')}
+    return msgs.length?fail(msgs,ids):(clearErrors(),true);
   }
+
   function validar4(){
     const msgs=[],ids=[];
+    const sub=typeof subtotalOrcamento==='function'?subtotalOrcamento():0;
+    const frete=nv('orcFrete'), desc=nv('orcDesconto');
     if(!itensOrcamento.length) msgs.push('Adicione pelo menos um produto ao orçamento.');
     if(!v('empresaNome')){msgs.push('Informe o nome da empresa ou profissional.');ids.push('empresaNome')}
     if(!v('clienteNome')){msgs.push('Informe o nome do cliente.');ids.push('clienteNome')}
     if(!v('orcPrazo')){msgs.push('Informe o prazo de produção/entrega.');ids.push('orcPrazo')}
     if(!v('orcPagamento')){msgs.push('Informe as condições de pagamento.');ids.push('orcPagamento')}
+    if(desc>sub+frete){msgs.push('O desconto não pode ser maior que subtotal + frete.');ids.push('orcDesconto')}
+    if(totalOrcamento()<=0){msgs.push('O total final do orçamento precisa ser maior que zero.');ids.push('orcDesconto')}
     return msgs.length?fail(msgs,ids):(clearErrors(),true);
   }
+
   function validaAte(destino){
     if(destino>1&&!validar1()) return false;
     if(destino>2&&!validar2()) return false;
     if(destino>3&&!validar3()) return false;
     return true;
   }
+
   function status(){
     const s1=v('produtoNome')&&nv('dimensaoX')>0&&nv('dimensaoY')>0&&nv('dimensaoZ')>0&&document.getElementById('medidasConferidas').checked&&nv('qtd')>0&&(nv('horas')>0||nv('minutos')>0);
-    const s2=nv('energiaKwh')>0&&nv('potencia')>0;
-    const s3=document.getElementById('revisaoCustos').checked;
-    const s4=itensOrcamento.length>0&&v('empresaNome')&&v('clienteNome')&&v('orcPrazo')&&v('orcPagamento');
-    [s1,s2,s3,s4].forEach((ok,i)=>{const e=document.getElementById('statusEtapa'+(i+1));if(e)e.textContent=ok?'Concluída':'Pendente';const b=document.querySelector('.wizard-step[data-step="'+(i+1)+'"]');if(b)b.classList.toggle('complete',!!ok)});
+    const s2=nv('energiaKwh')>0&&nv('potencia')>0&&cabeNaImpressora();
+    const s3=document.getElementById('revisaoCustos').checked&&somaTaxas()<95;
+    const s4=itensOrcamento.length>0&&v('empresaNome')&&v('clienteNome')&&v('orcPrazo')&&v('orcPagamento')&&totalOrcamento()>0;
+    [s1,s2,s3,s4].forEach((ok,i)=>{
+      const e=document.getElementById('statusEtapa'+(i+1)); if(e)e.textContent=ok?'Concluída':'Pendente';
+      const b=document.querySelector('.wizard-step[data-step="'+(i+1)+'"]'); if(b)b.classList.toggle('complete',!!ok);
+    });
+    const snapPeca=document.getElementById('snapPeca'),snapProducao=document.getElementById('snapProducao'),snapCustos=document.getElementById('snapCustos'),snapPreco=document.getElementById('snapPreco');
+    if(snapPeca) snapPeca.textContent=(v('produtoNome')||'Sem nome')+' · '+(nv('dimensaoX')>0?dimensoesTexto():'medidas pendentes');
+    if(snapProducao){
+      const b=typeof parametrosBase==='function'?parametrosBase():null;
+      const peso=b?(b.multi?(b.materiais||[]).reduce((s,m)=>s+(Number(m.peso)||0),0):b.peso*b.qtd):0;
+      const tempo=b?b.tempoPorPeca*b.qtd:0;
+      snapProducao.textContent=(b?b.qtd:0)+' un. · '+peso.toLocaleString('pt-BR',{maximumFractionDigits:1})+' g · '+(typeof formatarHoras==='function'?formatarHoras(tempo):tempo+' h');
+    }
+    if(snapCustos){
+      const custo=ultimoCalculo&&Number.isFinite(ultimoCalculo.custoOperacional)?ultimoCalculo.custoOperacional:0;
+      snapCustos.textContent=brl(custo)+' · taxas '+somaTaxas().toFixed(1).replace('.',',')+'%';
+    }
+    if(snapPreco){
+      const p=precosCalculados&&Number.isFinite(precosCalculados.rec)?precosCalculados.rec:0;
+      snapPreco.textContent=brl(p)+(nv('qtd')>0?' · '+brl(p/nv('qtd'))+'/un.':'');
+    }
+    const live=document.getElementById('liveSafetyWarning');
+    if(live){
+      const avisos=[];
+      if(somaTaxas()>=60&&somaTaxas()<95) avisos.push('Taxas e impostos somam '+somaTaxas().toFixed(1).replace('.',',')+'%. Confira se todos os percentuais estão corretos.');
+      if(nv('reservaFalha')===0) avisos.push('A reserva para falhas está em 0%. Só mantenha assim se isso for intencional.');
+      if(nv('custosFixosMes')===0) avisos.push('Custos fixos mensais estão em R$ 0,00. Confirme se aluguel, internet, software e estrutura não precisam ser rateados.');
+      live.style.display=avisos.length?'block':'none'; live.innerHTML=avisos.map(x=>'• '+x).join('<br>');
+    }
   }
+
   function mostrar(n,force=false){
     if(!force && n>etapaAtual && !validaAte(n)) return;
     etapaAtual=Math.max(1,Math.min(4,n));
@@ -1897,30 +1985,79 @@ renderItensOrcamento();
     document.getElementById('wizardBack').style.visibility=etapaAtual===1?'hidden':'visible';
     document.getElementById('wizardNext').textContent=etapaAtual===3?'Ir para o orçamento →':'Próxima etapa →';
     const msgs=[
-      'Etapa 1 de 4 — informe a peça, medidas, material, peso e tempo de impressão.',
-      'Etapa 2 de 4 — confira energia, potência e custo/depreciação da impressora.',
-      'Etapa 3 de 4 — revise mão de obra, taxas, impostos, falhas, frete e margem antes de usar o preço.',
-      'Etapa 4 de 4 — complete os dados do cliente, revise os itens e gere o orçamento.'
+      'Etapa 1 de 4 — confira o pedido do cliente, dimensões, material, peso e tempo do slicer.',
+      'Etapa 2 de 4 — valide se a peça cabe na impressora e confira energia e custo da máquina.',
+      'Etapa 3 de 4 — revise lucro, mão de obra, falhas, taxas, impostos, frete e custos adicionais.',
+      'Etapa 4 de 4 — confira cliente, itens, desconto, prazo e pagamento antes de gerar o PDF.'
     ];
     document.getElementById('wizardMessage').textContent=msgs[etapaAtual-1];
-    status(); window.scrollTo({top:document.getElementById('wizardNav').offsetTop-12,behavior:'smooth'});
+    status();
+    window.scrollTo({top:document.getElementById('wizardNav').offsetTop-12,behavior:'smooth'});
   }
+
+  // Agrupa campos menos usados para reduzir poluição visual sem remover recursos.
+  if(step3){
+    const grid=step3.querySelector('.grid');
+    if(grid){
+      const live=document.createElement('div'); live.id='liveSafetyWarning'; live.className='live-warning'; grid.prepend(live);
+      const snap=document.createElement('div'); snap.id='reviewSnapshot'; snap.className='review-snapshot';
+      snap.innerHTML='<div class="snap"><small>Peça / medidas</small><strong id="snapPeca">—</strong></div><div class="snap"><small>Produção</small><strong id="snapProducao">—</strong></div><div class="snap"><small>Custos e taxas</small><strong id="snapCustos">—</strong></div><div class="snap"><small>Preço recomendado</small><strong id="snapPreco">—</strong></div>';
+      grid.appendChild(snap);
+      const grupos=[
+        {titulo:'Modelagem e custos fixos',ids:['minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes']},
+        {titulo:'Marketplace, taxas e impostos',ids:['canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda']},
+        {titulo:'Frete, componentes e ajustes comerciais',ids:['extraPorPeca','royaltyPorPeca','freteCobrado','custoFrete','urgencia','precoMercado','arredondamento','precoInformado']}
+      ];
+      grupos.forEach(g=>{
+        const box=document.createElement('details'); box.className='advanced-box';
+        const sum=document.createElement('summary'); sum.textContent=g.titulo;
+        const content=document.createElement('div'); content.className='advanced-content';
+        const inner=document.createElement('div'); inner.className='grid';
+        content.appendChild(inner); box.append(sum,content);
+        const ref=document.getElementById(g.ids[0])?.closest('.field');
+        if(ref) grid.insertBefore(box,ref);
+        g.ids.forEach(id=>{const field=document.getElementById(id)?.closest('.field');if(field)inner.appendChild(field)});
+      });
+      const note=document.createElement('div'); note.className='safety-note'; note.innerHTML='<strong>Regra de segurança:</strong> campos com valor zero são aceitos somente depois da confirmação final de revisão. Se qualquer custo for alterado depois, a confirmação será desmarcada automaticamente.';
+      const review=document.getElementById('revisaoCustos')?.closest('.field'); if(review)grid.insertBefore(note,review);
+    }
+  }
+
+  // Alterar dimensões invalida a confirmação anterior.
+  ['dimensaoX','dimensaoY','dimensaoZ'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('input',()=>{if(iniciando)return;document.getElementById('medidasConferidas').checked=false;salvarDados();status()});
+  });
+
+  // Alterar custos/taxas invalida a revisão anterior.
+  const camposCustos=['filamentoKg','peso','horas','minutos','modoTempo','modoMaterial','estadoEnergia','energiaKwh','impressora','potencia','desgasteHora','desgasteModo','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra','extras','extraPorPeca','royaltyPorPeca','margem','reservaFalha','desperdicioGramas','valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes','pedidoMinimo','lucroHora','canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda','freteCobrado','custoFrete','urgencia'];
+  camposCustos.forEach(id=>{
+    document.getElementById(id)?.addEventListener('input',()=>{if(iniciando)return;document.getElementById('revisaoCustos').checked=false;status()});
+    document.getElementById(id)?.addEventListener('change',()=>{if(iniciando)return;document.getElementById('revisaoCustos').checked=false;status()});
+  });
+
+  // Mudanças nas linhas multimaterial também invalidam revisão.
+  document.getElementById('materiaisLista')?.addEventListener('input',()=>{if(iniciando)return;document.getElementById('revisaoCustos').checked=false;status()});
 
   document.querySelectorAll('.wizard-step').forEach(b=>b.addEventListener('click',()=>mostrar(Number(b.dataset.step))));
   document.getElementById('wizardBack').addEventListener('click',()=>mostrar(etapaAtual-1,true));
   document.getElementById('wizardNext').addEventListener('click',()=>mostrar(etapaAtual+1));
-  document.addEventListener('input',status); document.addEventListener('change',()=>{status();try{salvarDados()}catch(e){}});
+  document.addEventListener('input',status);
+  document.addEventListener('change',()=>{status();try{salvarDados()}catch(e){}});
 
   const oldAdd=window.adicionarProdutoAoOrcamento;
   window.adicionarProdutoAoOrcamento=function(){
     if(!validar1()){mostrar(1,true);return}
     if(!validar2()){mostrar(2,true);return}
     if(!validar3()){mostrar(3,true);return}
+    const preco=obterPrecoSelecionadoCalculadora();
+    if(!Number.isFinite(preco)||preco<=0){fail(['O preço escolhido para o orçamento precisa ser maior que zero.'],['precoOrcamentoTipo']);mostrar(3,true);return}
     const antes=itensOrcamento.length;
     oldAdd();
     if(itensOrcamento.length>antes){
       const item=itensOrcamento[itensOrcamento.length-1];
       item.nome=item.nome+' — '+dimensoesTexto();
+      item.dimensoes={x:nv('dimensaoX'),y:nv('dimensaoY'),z:nv('dimensaoZ')};
+      item.precoOrigem=v('precoOrcamentoTipo');
       renderItensOrcamento(); salvarDados(); status(); mostrar(4,true);
     }
   };
@@ -1930,8 +2067,8 @@ renderItensOrcamento();
   const oldPDF=window.gerarPDFOrcamento;
   window.gerarPDFOrcamento=async function(){if(!validar4())return;await oldPDF()};
 
-  // Replace generic "Adicionar" wording with a stronger review cue.
   document.querySelectorAll('button').forEach(b=>{if((b.getAttribute('onclick')||'').includes('adicionarProdutoAoOrcamento')) b.textContent='Revisar e adicionar ao orçamento'});
+  iniciando=false;
   mostrar(1,true); status();
 })();
 </script>
