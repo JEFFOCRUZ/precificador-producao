@@ -1972,6 +1972,14 @@ renderItensOrcamento();
   simpleReview.innerHTML='<div class="spr"><small>Custo estimado</small><strong id="sprCost">R$ 0,00</strong></div><div class="spr main"><small>Preço recomendado</small><strong id="sprPrice">R$ 0,00</strong></div><div class="spr"><small>Preço por unidade</small><strong id="sprUnit">R$ 0,00</strong></div><div class="spr"><small>Lucro estimado</small><strong id="sprProfit">R$ 0,00</strong></div>';
   mainCard.appendChild(simpleReview);
 
+  const addAnother=document.createElement('button');
+  addAnother.type='button';
+  addAnother.id='addAnotherItem';
+  addAnother.className='secondary question-hidden';
+  addAnother.textContent='+ Adicionar outro item';
+  addAnother.style.marginTop='12px';
+  quote.querySelector('.quote-actions')?.prepend(addAnother);
+
   const qActions=document.createElement('div');
   qActions.className='question-actions';qActions.id='questionActions';
   qActions.innerHTML='<button type="button" class="secondary" id="qBack">← Voltar</button><button type="button" class="secondary" id="qAdvanced">Opções avançadas</button><button type="button" class="primary" id="qNext">Continuar →</button>';
@@ -2154,6 +2162,7 @@ renderItensOrcamento();
       if(q.special==='quoteFinal'){
         quote.querySelectorAll('.orc-lista,.orc-summary,.quote-actions').forEach(showNode);
         showFields(['orcFrete','orcDesconto']);
+        showNode(el('addAnotherItem'));
       }
     }
     macroButtons.forEach(b=>b.classList.toggle('active',Number(b.dataset.step)===macro));
@@ -2267,6 +2276,29 @@ renderItensOrcamento();
   ['dimensaoX','dimensaoY','dimensaoZ'].forEach(id=>el(id)?.addEventListener('input',()=>{if(booting)return;el('medidasConferidas').checked=false;status()}));
   const costIds=['filamentoKg','peso','horas','minutos','modoTempo','modoMaterial','energiaKwh','impressora','potencia','desgasteHora','desgasteModo','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra','extras','margem','reservaFalha','valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','pedidoMinimo','lucroHora','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda','freteCobrado','custoFrete','urgencia'];
   costIds.forEach(id=>{el(id)?.addEventListener('input',()=>{if(!booting&&el('revisaoCustos'))el('revisaoCustos').checked=false;status()});el(id)?.addEventListener('change',()=>{if(!booting&&el('revisaoCustos'))el('revisaoCustos').checked=false;status()})});
+
+  function prepararNovoItem(){
+    // Mantém orçamento, cliente, empresa e configurações gerais; limpa somente dados da nova peça.
+    const set=(id,val)=>{const e=el(id);if(e)e.value=val};
+    set('produtoNome','');
+    set('dimensaoX','');set('dimensaoY','');set('dimensaoZ','');
+    if(el('medidasConferidas'))el('medidasConferidas').checked=false;
+    set('qtd',1);
+    set('peso',0);
+    set('horas',0);set('minutos',0);
+    if(el('modoTempo'))el('modoTempo').value='peca';
+    if(el('revisaoCustos'))el('revisaoCustos').checked=false;
+
+    // Em multimaterial, preserva nomes/preços mas zera os pesos do novo item.
+    document.querySelectorAll('.material-row .mat-peso').forEach(e=>e.value=0);
+
+    try{calcular();salvarDados()}catch(e){}
+    macro=1;qIndex=0;
+    renderQuestion();
+    setTimeout(()=>help.scrollIntoView({behavior:'smooth',block:'start'}),30);
+  }
+
+  el('addAnotherItem')?.addEventListener('click',prepararNovoItem);
 
   el('qNext').addEventListener('click',goNext);el('qBack').addEventListener('click',goBack);
   el('qAdvanced').addEventListener('click',()=>{
