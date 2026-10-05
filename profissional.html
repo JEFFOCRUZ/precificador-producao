@@ -63,11 +63,13 @@ body{
 .field{display:flex;flex-direction:column;gap:7px}
 .field.full{grid-column:1/-1}
 label{font-size:12px;color:#c4c8d0;font-weight:600}
-input,select{
-  width:100%;height:46px;border:1px solid #313640;background:#0c0e12;color:#fff;
+input,select,textarea{
+  width:100%;border:1px solid #313640;background:#0c0e12;color:#fff;
   border-radius:12px;padding:0 13px;font-size:14px;outline:none;transition:.18s
 }
-input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(244,180,26,.10)}
+input,select{height:46px}
+textarea{min-height:88px;padding:12px 13px;resize:vertical;font-family:inherit;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(244,180,26,.10)}
 .hint{font-size:11px;color:#777e8b;line-height:1.5;margin-top:6px}
 .section{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
@@ -170,8 +172,8 @@ button{
   justify-content:space-between;
   gap:24px;
   align-items:flex-start;
-  border-bottom:2px solid var(--orc-accent);
-  padding-bottom:14px;
+  border-bottom:3px solid var(--orc-accent);
+  padding:4px 0 16px;
 }
 .qp-logo img{
   max-width:55mm;
@@ -218,12 +220,37 @@ button{
   max-width:100%;
 }
 .qp-total div{display:flex;justify-content:space-between;padding:7px 0;font-size:13px}
-.qp-total .grand{font-size:20px;font-weight:900;border-top:2px solid #111;margin-top:4px;padding-top:10px;color:var(--orc-accent)}
+.qp-total .grand{font-size:20px;font-weight:900;border-top:2px solid var(--orc-accent);margin-top:4px;padding:11px 10px;color:var(--orc-accent);background:#fafafa;border-radius:6px}
 .qp-note{
   margin-top:10mm;
   font-size:11px;
   line-height:1.6;
   color:#555;
+  padding:12px 14px;
+  background:#fafafa;
+  border:1px solid #ececec;
+  border-radius:8px;
+}
+.qp-thanks{
+  margin-top:8mm;
+  text-align:center;
+  padding:14px 18px 4px;
+}
+.qp-thanks-line{
+  width:42mm;
+  max-width:55%;
+  height:2px;
+  margin:0 auto 10px;
+  background:var(--orc-accent);
+  border-radius:2px;
+}
+.qp-thanks p{
+  margin:0 auto;
+  max-width:150mm;
+  font-size:12px;
+  line-height:1.65;
+  color:#3f3f46;
+  font-weight:600;
 }
 .qp-footer{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#777}
 
@@ -940,6 +967,20 @@ document.addEventListener('DOMContentLoaded',()=>{window.scrollTo(0,0);setTimeou
           <label>Observações</label>
           <input id="orcObs" type="text" placeholder="Informações adicionais para o cliente">
         </div>
+        <div class="field full">
+          <label>Sugestão de frase final</label>
+          <select id="orcMensagemPreset">
+            <option value="1">Profissional e acolhedora</option>
+            <option value="2">Curta e direta</option>
+            <option value="3">Foco em parceria</option>
+            <option value="4">Sem mensagem automática</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Mensagem final do orçamento</label>
+          <textarea id="orcMensagemFinal" rows="3" placeholder="Mensagem de agradecimento ao cliente">Obrigado pela oportunidade! Será um prazer transformar seu projeto em realidade. Ficamos à disposição para qualquer dúvida ou ajuste neste orçamento.</textarea>
+          <div class="hint">Essa mensagem aparece no final da prévia e do PDF. Você pode editar ou apagar.</div>
+        </div>
       </div>
     </div>
 
@@ -994,6 +1035,11 @@ document.addEventListener('DOMContentLoaded',()=>{window.scrollTo(0,0);setTimeou
         <p><strong>Condições de pagamento:</strong> <span id="qpPagamento"></span></p>
         <p><strong>Observações:</strong> <span id="qpObs"></span></p>
       </div>
+
+      <div class="qp-thanks" id="qpThanks">
+        <div class="qp-thanks-line"></div>
+        <p id="qpMensagemFinal"></p>
+      </div>
       
     </div>
   </section>
@@ -1036,7 +1082,7 @@ const CAMPOS_SALVAR=[
   'precoOrcamentoTipo','precoOrcamentoCustom',
   'empresaNome','empresaTelefone','corOrcamento','corOrcamentoCustom','empresaDoc',
   'empresaEmail','empresaEndereco','clienteNome','clienteTelefone','orcValidade',
-  'orcPrazo','orcPagamento','orcObs','orcFrete','orcDesconto'
+  'orcPrazo','orcPagamento','orcObs','orcMensagemPreset','orcMensagemFinal','orcFrete','orcDesconto'
 ];
 
 function numeroSeguro(id,min=0,max=Number.POSITIVE_INFINITY,inteiro=false){
@@ -1516,6 +1562,9 @@ function gerarPreviewOrcamento(){
   document.getElementById('qpTotal').textContent = brl(total);
   document.getElementById('qpPagamento').textContent = valorTexto('orcPagamento') || 'A combinar';
   document.getElementById('qpObs').textContent = valorTexto('orcObs') || '—';
+  const mensagemFinal = valorTexto('orcMensagemFinal');
+  document.getElementById('qpMensagemFinal').textContent = mensagemFinal;
+  document.getElementById('qpThanks').style.display = mensagemFinal ? 'block' : 'none';
 
   document.getElementById('qpNumero').textContent = gerarNumeroOrcamento();
   document.getElementById('qpData').textContent = 'Emitido em '+data.toLocaleDateString('pt-BR');
@@ -1566,6 +1615,7 @@ async function gerarPDFOrcamento(){
   const clienteTel = valorTexto('clienteTelefone');
   const pagamento = valorTexto('orcPagamento') || 'A combinar';
   const obs = valorTexto('orcObs') || '—';
+  const mensagemFinal = valorTexto('orcMensagemFinal');
   const prazo = valorTexto('orcPrazo') || 'A combinar';
   const validade = Math.max(1,n('orcValidade'));
   const total = totalOrcamento();
@@ -1818,14 +1868,42 @@ async function gerarPDFOrcamento(){
   if(y>260) await novaPaginaConteudo();
   await escreverSecaoLonga('OBSERVAÇÕES',obs);
 
-  // Rodapé final limpo.
-  doc.setDrawColor(225,227,231);
-  doc.setLineWidth(.3);
-  doc.line(margin, 282, pageW - margin, 282);
-  doc.setFont('helvetica','normal');
+  // Mensagem final elegante.
+  if(mensagemFinal){
+    const linhasMsg=doc.splitTextToSize(mensagemFinal,contentW-24);
+    const msgH=Math.max(24,14+linhasMsg.length*4.6);
+    if(y+msgH>273) await novaPaginaConteudo();
+    y+=5;
+    doc.setFillColor(250,250,250);
+    doc.setDrawColor(...gold);
+    doc.setLineWidth(.6);
+    doc.roundedRect(margin,y,contentW,msgH,3,3,'FD');
+    doc.setDrawColor(...gold);
+    doc.setLineWidth(1.4);
+    doc.line(margin+contentW/2-18,y+7,margin+contentW/2+18,y+7);
+    doc.setTextColor(...dark);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('MUITO OBRIGADO!',pageW/2,y+14,{align:'center'});
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.7);
+    doc.setTextColor(...gray);
+    doc.text(linhasMsg,pageW/2,y+21,{align:'center',maxWidth:contentW-24});
+    y+=msgH+6;
+  }
+
+  // Rodapé final.
+  doc.setFillColor(249,250,251);
+  doc.rect(0,279,pageW,18,'F');
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(.6);
+  doc.line(margin,281,pageW-margin,281);
+  doc.setFont('helvetica','bold');
   doc.setFontSize(7.5);
-  doc.setTextColor(135,140,148);
-  doc.text(empresa, margin, 288, {maxWidth:110});
+  doc.setTextColor(...dark);
+  doc.text(empresa, margin, 288, {maxWidth:105});
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(...gray);
   if(telefone){
     doc.text(telefone, pageW - margin, 288, {align:'right',maxWidth:60});
   }
@@ -1833,6 +1911,18 @@ async function gerarPDFOrcamento(){
   const safe = (cliente || 'cliente').replace(/[^\wÀ-ÿ-]+/g,'_');
   doc.save('orcamento_' + safe + '_' + numero + '.pdf');
 }
+
+document.getElementById('orcMensagemPreset')?.addEventListener('change',function(){
+  const mensagens={
+    '1':'Obrigado pela oportunidade! Será um prazer transformar seu projeto em realidade. Ficamos à disposição para qualquer dúvida ou ajuste neste orçamento.',
+    '2':'Obrigado pelo contato e pela confiança. Ficamos à disposição para qualquer dúvida.',
+    '3':'Agradecemos a oportunidade de participar do seu projeto. Conte conosco para transformar sua ideia em uma solução feita com cuidado e qualidade.',
+    '4':''
+  };
+  const campo=document.getElementById('orcMensagemFinal');
+  if(campo) campo.value=mensagens[this.value] ?? campo.value;
+  salvarDados();
+});
 
 renderItensOrcamento();
 
@@ -1981,7 +2071,7 @@ renderItensOrcamento();
   const q3=[
     {title:'Quem está emitindo o orçamento?',text:'Informe pelo menos o nome da empresa ou profissional. Telefone é recomendado.',example:'Esses dados aparecem no PDF enviado ao cliente.',ids:['empresaNome','empresaTelefone'],check:()=>v('empresaNome')?true:fail(['Informe o nome da empresa ou profissional.'],['empresaNome'])},
     {title:'Para quem é o orçamento?',text:'Informe o nome do cliente. O telefone é opcional.',example:'Use o nome que deve aparecer no documento.',ids:['clienteNome','clienteTelefone'],check:()=>v('clienteNome')?true:fail(['Informe o nome do cliente.'],['clienteNome'])},
-    {title:'Prazo e pagamento',text:'Defina validade do orçamento, prazo de produção e como o cliente pagará.',example:'Ex.: validade 7 dias, produção em 3 a 5 dias úteis, 50% na aprovação e 50% na entrega.',ids:['orcValidade','orcPrazo','orcPagamento','orcObs'],check:()=>v('orcPrazo')&&v('orcPagamento')?true:fail(['Informe prazo e condições de pagamento.'],['orcPrazo','orcPagamento'])},
+    {title:'Prazo e pagamento',text:'Defina validade do orçamento, prazo de produção e como o cliente pagará.',example:'Ex.: validade 7 dias, produção em 3 a 5 dias úteis, 50% na aprovação e 50% na entrega.',ids:['orcValidade','orcPrazo','orcPagamento','orcObs','orcMensagemFinal'],check:()=>v('orcPrazo')&&v('orcPagamento')?true:fail(['Informe prazo e condições de pagamento.'],['orcPrazo','orcPagamento'])},
     {title:'Última conferência',text:'Revise os itens, frete e desconto. Depois visualize ou gere o PDF.',example:'O desconto nunca pode superar subtotal + frete e o total final precisa ser positivo.',special:'quoteFinal',check:()=>{
       const sub=subtotalOrcamento(),frete=n('orcFrete'),desc=n('orcDesconto');
       if(!itensOrcamento.length)return fail(['Adicione pelo menos um produto ao orçamento.']);
