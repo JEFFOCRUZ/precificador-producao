@@ -436,6 +436,26 @@ button{
 @media(max-width:800px){.review-snapshot{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.advanced-box .grid{grid-template-columns:1fr}}
 </style>
+<script id="scroll-top-guard">
+try{if('scrollRestoration' in history) history.scrollRestoration='manual';}catch(e){}
+window.addEventListener('pageshow',()=>{requestAnimationFrame(()=>window.scrollTo(0,0));});
+document.addEventListener('DOMContentLoaded',()=>{window.scrollTo(0,0);setTimeout(()=>window.scrollTo(0,0),60);});
+</script>
+<style id="simple-question-guide-style">
+.quick-start{margin:0 0 16px;padding:16px 18px;border-radius:16px;border:1px solid rgba(244,180,26,.32);background:linear-gradient(135deg,rgba(244,180,26,.10),rgba(17,19,24,.96));display:flex;align-items:center;justify-content:space-between;gap:16px}
+.quick-start strong{display:block;font-size:14px;color:#fff;margin-bottom:4px}.quick-start span{font-size:11px;color:#aeb4be;line-height:1.5}.quick-start button{padding:0 16px;white-space:nowrap}
+.question-help{margin:0 0 14px;padding:16px;border-radius:16px;border:1px solid #343a45;background:#0e1115}
+.question-help .q-progress{font-size:10px;font-weight:900;color:var(--gold2);letter-spacing:.6px;text-transform:uppercase;margin-bottom:7px}
+.question-help h4{margin:0 0 6px;font-size:17px}.question-help p{margin:0;color:#aeb4be;font-size:12px;line-height:1.6}
+.question-help .q-example{margin-top:10px;padding:9px 11px;border-radius:10px;background:rgba(244,180,26,.07);color:#d8c58d;font-size:11px}
+.question-actions{display:flex;align-items:center;gap:10px;margin-top:16px}.question-actions .primary{margin-left:auto;padding:0 18px}.question-actions .secondary{padding:0 16px}
+.question-hidden{display:none!important}.question-current{animation:qfade .16s ease-out}
+@keyframes qfade{from{opacity:.25;transform:translateY(5px)}to{opacity:1;transform:none}}
+.simple-defaults{margin:10px 0 0;font-size:10px;color:#808895}.simple-defaults strong{color:#cbd0d7}
+.optional-link{margin-top:10px;font-size:11px;color:#9da4ae}.optional-link button{height:auto;padding:0;background:none;color:var(--gold2);font-size:11px;text-decoration:underline}
+.quote-optional{margin:14px 0;border:1px solid #303640;border-radius:13px;background:#0c0e12;overflow:hidden}.quote-optional summary{cursor:pointer;padding:12px 14px;font-size:11px;font-weight:800;color:#d8dce3}.quote-optional .inside{padding:0 12px 12px}
+@media(max-width:700px){.quick-start{align-items:flex-start;flex-direction:column}.quick-start button{width:100%}.question-actions{display:grid;grid-template-columns:1fr 1fr}.question-actions .primary{margin-left:0}.question-actions button{width:100%}}
+</style>
 </head>
 
 <body>
@@ -463,6 +483,11 @@ button{
   <div class="critical-size-alert">
     <div class="critical-size-icon">!</div>
     <div><strong>Antes de precificar, confira o tamanho pedido pelo cliente.</strong><span>Compare largura, profundidade e altura com o arquivo/slicer. Uma medida errada altera peso, tempo de impressão, custo e preço final.</span></div>
+  </div>
+
+  <div class="quick-start" id="quickStart">
+    <div><strong>Preenchimento assistido</strong><span>Você vai responder uma pergunta por vez. Os valores técnicos mais comuns já vêm sugeridos e podem ser alterados.</span></div>
+    <button type="button" class="primary" id="btnComecar">COMEÇAR</button>
   </div>
 
   <nav class="wizard-nav" id="wizardNav" aria-label="Etapas do precificador">
@@ -509,7 +534,7 @@ button{
 
         <div class="field">
           <label>Valor do filamento por kg (R$)</label>
-          <input id="filamentoKg" type="number" min="0" step="0.01" value="0" placeholder="Ex.: 70,00">
+          <input id="filamentoKg" type="number" min="0" step="0.01" value="95" placeholder="Ex.: 70,00">
         </div>
 
         <div class="field">
@@ -575,7 +600,7 @@ button{
 
           <div class="field">
             <label>Energia (R$/kWh)</label>
-            <input id="energiaKwh" type="number" min="0" step="0.01" value="0">
+            <input id="energiaKwh" type="number" min="0" step="0.01" value="0.90">
           </div>
 
           <div class="field">
@@ -597,7 +622,7 @@ button{
 
           <div class="field">
             <label>Desgaste/manutenção por hora (R$)</label>
-            <input id="desgasteHora" type="number" min="0" step="0.01" value="1.50">
+            <input id="desgasteHora" type="number" min="0" step="0.01" value="2.50">
           </div>
           <div class="field">
             <label>Como calcular custo da máquina</label>
@@ -642,9 +667,9 @@ button{
           </div>
           <div class="field">
             <label>Preparação / setup fixo do pedido (min)</label>
-            <input id="minutosTrabalho" type="number" min="0" step="1" value="0">
+            <input id="minutosTrabalho" type="number" min="0" step="1" value="10">
           </div>
-          <div class="field"><label>Acabamento / embalagem por peça (min)</label><input id="minutosTrabalhoPorPeca" type="number" min="0" step="0.1" value="0"></div>
+          <div class="field"><label>Acabamento / embalagem por peça (min)</label><input id="minutosTrabalhoPorPeca" type="number" min="0" step="0.1" value="3"></div>
           <div class="field">
             <label>Tempo de modelagem / projeto (min)</label>
             <input id="minutosModelagem" type="number" min="0" step="1" value="0">
@@ -663,7 +688,7 @@ button{
           </div>
           <div class="field">
             <label>Preço mínimo do pedido (R$)</label>
-            <input id="pedidoMinimo" type="number" min="0" step="0.01" value="0">
+            <input id="pedidoMinimo" type="number" min="0" step="0.01" value="20">
           </div>
 
           <div class="field">
@@ -1813,283 +1838,275 @@ renderItensOrcamento();
 (function(){
   const mainCard=document.querySelector('main.layout > section.card');
   const quote=document.getElementById('orcamento');
-  if(!mainCard || !quote) return;
+  if(!mainCard||!quote)return;
 
   const direct=[...mainCard.children];
-  const step1Title=direct.find(el=>el.classList && el.classList.contains('card-title'));
-  const step1Grid=direct.find(el=>el.classList && el.classList.contains('grid'));
-  const sections=direct.filter(el=>el.classList && el.classList.contains('section'));
-  const step2=sections[0], step3=sections[1];
-  let etapaAtual=1;
-  let iniciando=true;
+  const step1Title=direct.find(el=>el.classList&&el.classList.contains('card-title'));
+  const step1Grid=direct.find(el=>el.classList&&el.classList.contains('grid'));
+  const sections=direct.filter(el=>el.classList&&el.classList.contains('section'));
+  const machineSection=sections[0], saleSection=sections[1];
+  const resultCard=mainCard.querySelector('.result');
+  const priceBox=mainCard.querySelector('.preco-orcamento-box');
+  const addActions=[...mainCard.querySelectorAll('.actions')].find(x=>(x.textContent||'').includes('Adicionar')||(x.textContent||'').includes('Revisar'));
+  const macroButtons=[...document.querySelectorAll('.wizard-step')];
+  let macro=1, qIndex=0, booting=true;
 
   const summary=document.createElement('div');
-  summary.className='validation-summary';
-  summary.id='validationSummary';
-  mainCard.insertBefore(summary, mainCard.firstChild);
+  summary.className='validation-summary';summary.id='validationSummary';
+  mainCard.insertBefore(summary,mainCard.firstChild);
 
-  const actions=document.createElement('div');
-  actions.className='wizard-actions';
-  actions.innerHTML='<button type="button" class="secondary" id="wizardBack">← Voltar</button><button type="button" class="primary wizard-next" id="wizardNext">Próxima etapa →</button>';
-  mainCard.appendChild(actions);
+  const help=document.createElement('div');
+  help.className='question-help';help.id='questionHelp';
+  help.innerHTML='<div class="q-progress" id="qProgress"></div><h4 id="qTitle"></h4><p id="qText"></p><div class="q-example" id="qExample"></div><div class="simple-defaults" id="qDefaults"></div>';
+  mainCard.insertBefore(help,summary.nextSibling);
 
-  function v(id){const el=document.getElementById(id);return el ? String(el.value||'').trim() : ''}
-  function nv(id){const x=parseFloat(v(id));return Number.isFinite(x)?x:0}
-  function clearErrors(){document.querySelectorAll('.field-invalid').forEach(el=>el.classList.remove('field-invalid'));summary.style.display='none';summary.innerHTML=''}
-  function mark(id){const el=document.getElementById(id);if(!el)return;const field=el.closest('.field')||el.closest('.size-check-card')||el;field.classList.add('field-invalid')}
-  function fail(msgs,ids=[]){
-    clearErrors(); ids.forEach(mark);
-    summary.innerHTML='<strong>Confira antes de continuar:</strong><br>• '+msgs.join('<br>• ');
-    summary.style.display='block';
-    summary.classList.remove('guided-hidden');
-    summary.scrollIntoView({behavior:'smooth',block:'center'});
-    return false;
-  }
-  function dimensoesTexto(){return nv('dimensaoX').toLocaleString('pt-BR')+' × '+nv('dimensaoY').toLocaleString('pt-BR')+' × '+nv('dimensaoZ').toLocaleString('pt-BR')+' mm'}
-  function somaTaxas(){return nv('taxa')+nv('taxaPagamento')+nv('taxaAds')+nv('impostos')}
+  const qActions=document.createElement('div');
+  qActions.className='question-actions';qActions.id='questionActions';
+  qActions.innerHTML='<button type="button" class="secondary" id="qBack">← Voltar</button><button type="button" class="secondary" id="qAdvanced">Opções avançadas</button><button type="button" class="primary" id="qNext">Continuar →</button>';
+  mainCard.appendChild(qActions);
+
+  function el(id){return document.getElementById(id)}
+  function v(id){const e=el(id);return e?String(e.value||'').trim():''}
+  function n(id){const x=parseFloat(v(id));return Number.isFinite(x)?x:0}
+  function field(id){const e=el(id);return e?(e.closest('.field')||e.closest('.size-check-card')||e):null}
+  function clearErrors(){document.querySelectorAll('.field-invalid').forEach(x=>x.classList.remove('field-invalid'));summary.style.display='none';summary.innerHTML=''}
+  function mark(id){const x=field(id);if(x)x.classList.add('field-invalid')}
+  function fail(msgs,ids=[]){clearErrors();ids.forEach(mark);summary.innerHTML='<strong>Antes de continuar:</strong><br>• '+msgs.join('<br>• ');summary.style.display='block';summary.classList.remove('question-hidden');summary.scrollIntoView({behavior:'smooth',block:'center'});return false}
+  function dimensoesTexto(){return n('dimensaoX').toLocaleString('pt-BR')+' × '+n('dimensaoY').toLocaleString('pt-BR')+' × '+n('dimensaoZ').toLocaleString('pt-BR')+' mm'}
+  function somaTaxas(){return n('taxa')+n('taxaPagamento')+n('taxaAds')+n('impostos')}
   function cabeNaImpressora(){
     const mapa={'90':[180,180,180],'110':[256,256,256],'120':[256,256,256],'140':[256,256,256]};
-    const vol=mapa[v('impressora')];
-    if(!vol) return true;
-    const p=[nv('dimensaoX'),nv('dimensaoY'),nv('dimensaoZ')].sort((a,b)=>a-b);
-    const b=[...vol].sort((a,b)=>a-b);
+    const vol=mapa[v('impressora')];if(!vol)return true;
+    const p=[n('dimensaoX'),n('dimensaoY'),n('dimensaoZ')].sort((a,b)=>a-b),b=[...vol].sort((a,b)=>a-b);
     return p.every((x,i)=>x<=b[i]);
   }
 
-  function validar1(){
-    const msgs=[],ids=[];
-    if(!v('produtoNome')){msgs.push('Informe o nome ou descrição do produto.');ids.push('produtoNome')}
-    if(nv('dimensaoX')<=0||nv('dimensaoY')<=0||nv('dimensaoZ')<=0){msgs.push('Preencha largura, profundidade e altura da peça em milímetros.');ids.push('dimensaoX','dimensaoY','dimensaoZ')}
-    if(!document.getElementById('medidasConferidas').checked){msgs.push('Marque que conferiu as medidas com o cliente e com o arquivo/slicer.');ids.push('medidasConferidas')}
-    if(nv('qtd')<1){msgs.push('Informe uma quantidade válida.');ids.push('qtd')}
-    if(document.getElementById('modoMaterial').value==='multi'){
-      const rows=[...document.querySelectorAll('.material-row')];
-      if(!rows.length) msgs.push('Adicione pelo menos um material no modo multimaterial.');
-      let totalPeso=0;
-      rows.forEach((r,i)=>{
-        const nome=(r.querySelector('.mat-nome')?.value||'').trim();
-        const preco=parseFloat(r.querySelector('.mat-preco')?.value)||0;
-        const peso=parseFloat(r.querySelector('.mat-peso')?.value)||0;
-        if(!nome||preco<=0||peso<=0) msgs.push('Complete nome, R$/kg e peso do material '+(i+1)+'.');
-        totalPeso+=Math.max(0,peso);
-      });
-      if(totalPeso<=0) msgs.push('O peso total dos materiais precisa ser maior que zero.');
-    }else{
-      if(nv('filamentoKg')<=0){msgs.push('Informe o valor do filamento por kg.');ids.push('filamentoKg')}
-      if(nv('peso')<=0){msgs.push('Informe o peso por peça.');ids.push('peso')}
+  // Campos técnicos opcionais continuam disponíveis, mas não atrapalham o fluxo principal.
+  function setupAdvanced(){
+    if(machineSection&&!el('advancedMachineBox')){
+      const grid=machineSection.querySelector('.grid');
+      const ids=['potencia','desgasteModo','desgasteHora','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra'];
+      const box=document.createElement('details');box.className='advanced-box';box.id='advancedMachineBox';
+      box.innerHTML='<summary>Configuração técnica da máquina</summary><div class="advanced-content"><div class="grid"></div></div>';
+      const ref=field('potencia');if(ref)grid.insertBefore(box,ref);
+      ids.forEach(id=>{const f=field(id);if(f)box.querySelector('.grid').appendChild(f)});
     }
-    if(nv('horas')<=0&&nv('minutos')<=0){msgs.push('Informe o tempo de impressão.');ids.push('horas','minutos')}
-    return msgs.length?fail([...new Set(msgs)],ids):(clearErrors(),true);
-  }
-
-  function validar2(){
-    const msgs=[],ids=[];
-    if(nv('energiaKwh')<=0){msgs.push('Informe a tarifa de energia em R$/kWh ou selecione o estado.');ids.push('energiaKwh')}
-    if(nv('potencia')<=0){msgs.push('Informe a potência média da impressora.');ids.push('potencia')}
-    if(document.getElementById('desgasteModo').value==='auto'){
-      if(nv('valorImpressora')<=0){msgs.push('Informe o valor pago na impressora para calcular a depreciação.');ids.push('valorImpressora')}
-      if(nv('vidaUtilHoras')<=0){msgs.push('Informe a vida útil considerada da impressora.');ids.push('vidaUtilHoras')}
-    }else if(nv('desgasteHora')<=0){
-      msgs.push('Informe um custo de desgaste/manutenção por hora maior que zero.');ids.push('desgasteHora')
-    }
-    if(!cabeNaImpressora()){
-      msgs.push('As dimensões '+dimensoesTexto()+' não cabem no volume conhecido da impressora selecionada. Revise o modelo, a orientação ou as medidas.');
-      ids.push('impressora');
-    }
-    return msgs.length?fail(msgs,ids):(clearErrors(),true);
-  }
-
-  function validar3(){
-    const msgs=[],ids=[];
-    if(nv('margem')<=0){msgs.push('Informe um markup desejado maior que zero.');ids.push('margem')}
-    if(nv('valorHoraTrabalho')<=0){msgs.push('Informe o valor da sua hora de trabalho.');ids.push('valorHoraTrabalho')}
-    if(nv('minutosModelagem')>0 && nv('valorHoraModelagem')<=0){msgs.push('Há tempo de modelagem informado, mas o valor/hora de modelagem está zerado.');ids.push('valorHoraModelagem')}
-    if(somaTaxas()>=95){msgs.push('A soma de comissão, pagamento, anúncios e impostos deve ficar abaixo de 95%.');ids.push('taxa','taxaPagamento','taxaAds','impostos')}
-    const canal=v('canalVenda');
-    if(['Mercado Livre','Shopee','Amazon','Etsy'].includes(canal) && nv('taxa')<=0){msgs.push('O canal selecionado normalmente cobra comissão. Informe a comissão real da sua conta antes de continuar.');ids.push('taxa')}
-    if(!document.getElementById('revisaoCustos').checked){msgs.push('Confirme que revisou mão de obra, modelagem, embalagem, taxas, impostos, frete, falhas e demais custos.');ids.push('revisaoCustos')}
-    const tipo=v('precoOrcamentoTipo');
-    if(tipo==='informado' && nv('precoInformado')<=0){msgs.push('Você escolheu usar o preço informado, mas esse valor está zerado.');ids.push('precoInformado')}
-    if(tipo==='personalizado' && nv('precoOrcamentoCustom')<=0){msgs.push('Informe o preço personalizado que será usado no orçamento.');ids.push('precoOrcamentoCustom')}
-    return msgs.length?fail(msgs,ids):(clearErrors(),true);
-  }
-
-  function validar4(){
-    const msgs=[],ids=[];
-    const sub=typeof subtotalOrcamento==='function'?subtotalOrcamento():0;
-    const frete=nv('orcFrete'), desc=nv('orcDesconto');
-    if(!itensOrcamento.length) msgs.push('Adicione pelo menos um produto ao orçamento.');
-    if(!v('empresaNome')){msgs.push('Informe o nome da empresa ou profissional.');ids.push('empresaNome')}
-    if(!v('clienteNome')){msgs.push('Informe o nome do cliente.');ids.push('clienteNome')}
-    if(!v('orcPrazo')){msgs.push('Informe o prazo de produção/entrega.');ids.push('orcPrazo')}
-    if(!v('orcPagamento')){msgs.push('Informe as condições de pagamento.');ids.push('orcPagamento')}
-    if(desc>sub+frete){msgs.push('O desconto não pode ser maior que subtotal + frete.');ids.push('orcDesconto')}
-    if(totalOrcamento()<=0){msgs.push('O total final do orçamento precisa ser maior que zero.');ids.push('orcDesconto')}
-    return msgs.length?fail(msgs,ids):(clearErrors(),true);
-  }
-
-  function validaAte(destino){
-    if(destino>1&&!validar1()) return false;
-    if(destino>2){
-      if(!validar2()) return false;
-      if(!validar3()) return false;
-      if(!itensOrcamento.length) return fail(['Antes de abrir o orçamento, clique em “Revisar e adicionar ao orçamento”.']);
-    }
-    return true;
-  }
-
-  function status(){
-    const s1=v('produtoNome')&&nv('dimensaoX')>0&&nv('dimensaoY')>0&&nv('dimensaoZ')>0&&document.getElementById('medidasConferidas').checked&&nv('qtd')>0&&(nv('horas')>0||nv('minutos')>0);
-    const maquinaOk=nv('energiaKwh')>0&&nv('potencia')>0&&cabeNaImpressora();
-    const custosOk=document.getElementById('revisaoCustos').checked&&somaTaxas()<95;
-    const s2=maquinaOk&&custosOk&&itensOrcamento.length>0;
-    const s3=itensOrcamento.length>0&&v('empresaNome')&&v('clienteNome')&&v('orcPrazo')&&v('orcPagamento')&&totalOrcamento()>0;
-    [s1,s2,s3].forEach((ok,i)=>{
-      const e=document.getElementById('statusEtapa'+(i+1)); if(e)e.textContent=ok?'Concluída':'Pendente';
-      const b=document.querySelector('.wizard-step[data-step="'+(i+1)+'"]'); if(b)b.classList.toggle('complete',!!ok);
-    });
-    const snapPeca=document.getElementById('snapPeca'),snapProducao=document.getElementById('snapProducao'),snapCustos=document.getElementById('snapCustos'),snapPreco=document.getElementById('snapPreco');
-    if(snapPeca) snapPeca.textContent=(v('produtoNome')||'Sem nome')+' · '+(nv('dimensaoX')>0?dimensoesTexto():'medidas pendentes');
-    if(snapProducao){
-      const b=typeof parametrosBase==='function'?parametrosBase():null;
-      const peso=b?(b.multi?(b.materiais||[]).reduce((s,m)=>s+(Number(m.peso)||0),0):b.peso*b.qtd):0;
-      const tempo=b?b.tempoPorPeca*b.qtd:0;
-      snapProducao.textContent=(b?b.qtd:0)+' un. · '+peso.toLocaleString('pt-BR',{maximumFractionDigits:1})+' g · '+(typeof formatarHoras==='function'?formatarHoras(tempo):tempo+' h');
-    }
-    if(snapCustos){
-      const custo=ultimoCalculo&&Number.isFinite(ultimoCalculo.custoOperacional)?ultimoCalculo.custoOperacional:0;
-      snapCustos.textContent=brl(custo)+' · taxas '+somaTaxas().toFixed(1).replace('.',',')+'%';
-    }
-    if(snapPreco){
-      const p=precosCalculados&&Number.isFinite(precosCalculados.rec)?precosCalculados.rec:0;
-      snapPreco.textContent=brl(p)+(nv('qtd')>0?' · '+brl(p/nv('qtd'))+'/un.':'');
-    }
-    const live=document.getElementById('liveSafetyWarning');
-    if(live){
-      const avisos=[];
-      if(somaTaxas()>=60&&somaTaxas()<95) avisos.push('Taxas e impostos somam '+somaTaxas().toFixed(1).replace('.',',')+'%. Confira se todos os percentuais estão corretos.');
-      if(nv('reservaFalha')===0) avisos.push('A reserva para falhas está em 0%. Só mantenha assim se isso for intencional.');
-      if(nv('custosFixosMes')===0) avisos.push('Custos fixos mensais estão em R$ 0,00. Confirme se aluguel, internet, software e estrutura não precisam ser rateados.');
-      live.style.display=avisos.length?'block':'none'; live.innerHTML=avisos.map(x=>'• '+x).join('<br>');
-    }
-  }
-
-  function mostrar(n,force=false){
-    if(!force && n>etapaAtual && !validaAte(n)) return;
-    etapaAtual=Math.max(1,Math.min(3,n));
-    if(step1Title)step1Title.classList.toggle('guided-hidden',etapaAtual!==1);
-    if(step1Grid)step1Grid.classList.toggle('guided-hidden',etapaAtual!==1);
-    if(step2)step2.classList.toggle('guided-hidden',etapaAtual!==2);
-    if(step3)step3.classList.toggle('guided-hidden',etapaAtual!==2);
-    quote.classList.toggle('guided-hidden',etapaAtual!==3);
-    summary.classList.toggle('guided-hidden',etapaAtual===3);
-    actions.classList.toggle('guided-hidden',etapaAtual===3);
-    document.querySelectorAll('.wizard-step').forEach(b=>b.classList.toggle('active',Number(b.dataset.step)===etapaAtual));
-    document.getElementById('wizardBack').style.visibility=etapaAtual===1?'hidden':'visible';
-    document.getElementById('wizardNext').textContent=etapaAtual===2?'Ir para o orçamento →':'Próxima etapa →';
-    const msgs=[
-      'Etapa 1 de 3 — confira pedido, dimensões, material, peso e tempo do slicer.',
-      'Etapa 2 de 3 — confira máquina, custos, lucro e preço. Abra opções avançadas somente quando precisar.',
-      'Etapa 3 de 3 — confira cliente, itens, desconto, prazo e pagamento antes de gerar o PDF.'
-    ];
-    document.getElementById('wizardMessage').textContent=msgs[etapaAtual-1];
-    status();
-    window.scrollTo({top:document.getElementById('wizardNav').offsetTop-12,behavior:'smooth'});
-  }
-
-  // Mantém a etapa de custos enxuta: detalhes técnicos da máquina ficam opcionais.
-  if(step2){
-    const grid2=step2.querySelector('.grid');
-    if(grid2){
-      const idsMaquina=['potencia','desgasteModo','desgasteHora','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra'];
-      const box=document.createElement('details'); box.className='advanced-box'; box.id='advancedMachineBox';
-      const sum=document.createElement('summary'); sum.textContent='Configuração avançada da máquina';
-      const content=document.createElement('div'); content.className='advanced-content';
-      const inner=document.createElement('div'); inner.className='grid'; content.appendChild(inner); box.append(sum,content);
-      const ref=document.getElementById('potencia')?.closest('.field'); if(ref)grid2.insertBefore(box,ref);
-      idsMaquina.forEach(id=>{const field=document.getElementById(id)?.closest('.field');if(field)inner.appendChild(field)});
-      const syncOpen=()=>{box.open=v('impressora')==='custom'||v('desgasteModo')==='auto'};
-      document.getElementById('impressora')?.addEventListener('change',syncOpen);
-      document.getElementById('desgasteModo')?.addEventListener('change',syncOpen);
-      syncOpen();
-    }
-  }
-
-  // Agrupa campos menos usados para reduzir poluição visual sem remover recursos.
-  if(step3){
-    const grid=step3.querySelector('.grid');
-    if(grid){
-      const live=document.createElement('div'); live.id='liveSafetyWarning'; live.className='live-warning'; grid.prepend(live);
-      const snap=document.createElement('div'); snap.id='reviewSnapshot'; snap.className='review-snapshot';
-      snap.innerHTML='<div class="snap"><small>Peça / medidas</small><strong id="snapPeca">—</strong></div><div class="snap"><small>Produção</small><strong id="snapProducao">—</strong></div><div class="snap"><small>Custos e taxas</small><strong id="snapCustos">—</strong></div><div class="snap"><small>Preço recomendado</small><strong id="snapPreco">—</strong></div>';
-      grid.appendChild(snap);
-      const grupos=[
-        {titulo:'Modelagem e custos fixos',ids:['minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes']},
-        {titulo:'Marketplace, taxas e impostos',ids:['canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda']},
-        {titulo:'Frete, componentes e ajustes comerciais',ids:['extraPorPeca','royaltyPorPeca','freteCobrado','custoFrete','urgencia','precoMercado','arredondamento','precoInformado']}
+    if(saleSection&&!saleSection.querySelector('.advanced-box')){
+      const grid=saleSection.querySelector('.grid');
+      const groups=[
+        ['Modelagem e custos fixos',['minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes']],
+        ['Marketplace, taxas e impostos',['canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda']],
+        ['Frete e ajustes comerciais',['extraPorPeca','royaltyPorPeca','freteCobrado','custoFrete','urgencia','precoMercado','arredondamento','precoInformado']]
       ];
-      grupos.forEach(g=>{
-        const box=document.createElement('details'); box.className='advanced-box';
-        const sum=document.createElement('summary'); sum.textContent=g.titulo;
-        const content=document.createElement('div'); content.className='advanced-content';
-        const inner=document.createElement('div'); inner.className='grid';
-        content.appendChild(inner); box.append(sum,content);
-        const ref=document.getElementById(g.ids[0])?.closest('.field');
-        if(ref) grid.insertBefore(box,ref);
-        g.ids.forEach(id=>{const field=document.getElementById(id)?.closest('.field');if(field)inner.appendChild(field)});
+      groups.forEach(([title,ids])=>{
+        const ref=field(ids[0]);if(!ref)return;
+        const box=document.createElement('details');box.className='advanced-box';
+        box.innerHTML='<summary>'+title+'</summary><div class="advanced-content"><div class="grid"></div></div>';
+        grid.insertBefore(box,ref);ids.forEach(id=>{const f=field(id);if(f)box.querySelector('.grid').appendChild(f)});
       });
-      const note=document.createElement('div'); note.className='safety-note'; note.innerHTML='<strong>Regra de segurança:</strong> campos com valor zero são aceitos somente depois da confirmação final de revisão. Se qualquer custo for alterado depois, a confirmação será desmarcada automaticamente.';
-      const review=document.getElementById('revisaoCustos')?.closest('.field'); if(review)grid.insertBefore(note,review);
+    }
+    // Personalização menos importante do PDF fica recolhida.
+    const qgrid=quote.querySelector(':scope > .grid');
+    if(qgrid&&!el('quoteOptional')){
+      const optionalIds=['corOrcamento','corOrcamentoCustom','empresaDoc','empresaEmail','empresaEndereco','empresaLogo'];
+      const first=field(optionalIds[0]);
+      if(first){
+        const box=document.createElement('details');box.className='quote-optional';box.id='quoteOptional';
+        box.innerHTML='<summary>Personalização do orçamento (opcional)</summary><div class="inside"><div class="grid"></div></div>';
+        qgrid.insertBefore(box,first);optionalIds.forEach(id=>{const f=field(id);if(f)box.querySelector('.grid').appendChild(f)});
+      }
     }
   }
+  setupAdvanced();
 
-  // Alterar dimensões invalida a confirmação anterior.
-  ['dimensaoX','dimensaoY','dimensaoZ'].forEach(id=>{
-    document.getElementById(id)?.addEventListener('input',()=>{if(iniciando)return;document.getElementById('medidasConferidas').checked=false;salvarDados();status()});
-  });
+  // Aplica sugestões apenas quando o navegador ainda não tem valor salvo útil.
+  function applySuggestedDefaults(){
+    const set=(id,val)=>{const e=el(id);if(e&&(e.value===''||Number(e.value)===0))e.value=val};
+    set('filamentoKg',95);set('energiaKwh',0.90);set('desgasteHora',2.50);
+    set('valorHoraTrabalho',25);set('minutosTrabalho',10);set('minutosTrabalhoPorPeca',3);
+    set('margem',100);set('reservaFalha',10);set('pedidoMinimo',20);set('lucroHora',8);
+    try{calcular();salvarDados()}catch(e){}
+  }
+  applySuggestedDefaults();
 
-  // Alterar custos/taxas invalida a revisão anterior.
-  const camposCustos=['filamentoKg','peso','horas','minutos','modoTempo','modoMaterial','estadoEnergia','energiaKwh','impressora','potencia','desgasteHora','desgasteModo','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra','extras','extraPorPeca','royaltyPorPeca','margem','reservaFalha','desperdicioGramas','valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','minutosModelagem','valorHoraModelagem','custosFixosMes','horasProdutivasMes','pedidoMinimo','lucroHora','canalVenda','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda','freteCobrado','custoFrete','urgencia'];
-  camposCustos.forEach(id=>{
-    document.getElementById(id)?.addEventListener('input',()=>{if(iniciando)return;document.getElementById('revisaoCustos').checked=false;status()});
-    document.getElementById(id)?.addEventListener('change',()=>{if(iniciando)return;document.getElementById('revisaoCustos').checked=false;status()});
-  });
+  const q1=[
+    {title:'O que você vai imprimir?',text:'Dê um nome simples para identificar a peça no orçamento.',example:'Ex.: Suporte de celular, chaveiro com nome, peça técnica.',ids:['produtoNome'],check:()=>v('produtoNome')?true:fail(['Informe o nome da peça.'],['produtoNome'])},
+    {title:'Qual é o tamanho final da peça?',text:'Copie as medidas finais pedidas pelo cliente. Confira também no arquivo ou no slicer antes de confirmar.',example:'Use milímetros: X = largura, Y = profundidade, Z = altura.',special:'size',check:()=>n('dimensaoX')>0&&n('dimensaoY')>0&&n('dimensaoZ')>0&&el('medidasConferidas').checked?true:fail(['Preencha X, Y e Z e marque que conferiu as medidas.'],['dimensaoX','dimensaoY','dimensaoZ','medidasConferidas'])},
+    {title:'Qual material será usado?',text:'Escolha o material. Para um único filamento, deixe “Um material”. O valor do rolo já vem com uma sugestão e você pode trocar.',example:'PLA é o mais comum. Se o seu rolo custa R$ 110, troque R$ 95 por R$ 110.',ids:['material','filamentoKg','modoMaterial'],defaults:'Sugestão inicial: R$ 95/kg. Referências atuais consultadas ficam aproximadamente entre R$ 80 e R$ 120/kg.',check:()=>v('modoMaterial')==='multi'||n('filamentoKg')>0?true:fail(['Informe o preço do filamento por kg.'],['filamentoKg'])},
+    {title:'Quanto pesa e quantas unidades?',text:'Copie o peso mostrado pelo slicer para UMA peça e informe quantas unidades o cliente quer.',example:'Ex.: slicer mostra 42 g por peça e o cliente quer 5 unidades.',ids:['peso','qtd'],check:()=>n('peso')>0&&n('qtd')>=1?true:fail(['Informe peso por peça e quantidade.'],['peso','qtd'])},
+    {title:'Quanto tempo leva para imprimir?',text:'Copie o tempo do slicer. Se ele mostra o tempo de uma única peça, mantenha “Uma peça”.',example:'Ex.: 2 h 35 min por peça.',ids:['horas','minutos','modoTempo'],check:()=>n('horas')>0||n('minutos')>0?true:fail(['Informe o tempo de impressão.'],['horas','minutos'])}
+  ];
 
-  // Mudanças nas linhas multimaterial também invalidam revisão.
-  document.getElementById('materiaisLista')?.addEventListener('input',()=>{if(iniciando)return;document.getElementById('revisaoCustos').checked=false;status()});
+  const q2=[
+    {title:'Qual impressora e custo de energia?',text:'Escolha a impressora. Se não souber sua tarifa exata de energia, a sugestão de R$ 0,90/kWh serve como ponto de partida e pode ser alterada.',example:'Para maior precisão, use o valor real da sua conta de luz.',ids:['impressora','estadoEnergia','energiaKwh'],defaults:'Sugestão inicial: energia R$ 0,90/kWh e desgaste/manutenção R$ 2,50/h.',check:()=>{if(n('energiaKwh')<=0)return fail(['Informe a tarifa de energia.'],['energiaKwh']);if(!cabeNaImpressora())return fail(['A peça ('+dimensoesTexto()+') não cabe no volume conhecido da impressora selecionada.'],['impressora']);return true}},
+    {title:'Quanto vale o seu trabalho?',text:'Inclua o tempo humano: preparar a máquina, retirar a peça, acabamento e embalagem. Isso não é o tempo que a impressora fica rodando sozinha.',example:'Já deixamos R$ 25/h, 10 min de preparação e 3 min por peça como ponto de partida.',ids:['valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','extras'],defaults:'Esses valores são editáveis. Extras podem incluir embalagem, argola, parafuso, cola etc.',check:()=>n('valorHoraTrabalho')>0?true:fail(['Informe o valor da sua hora de trabalho.'],['valorHoraTrabalho'])},
+    {title:'Quanto de segurança e lucro você quer?',text:'A reserva de falha protege contra reimpressões. O markup é o quanto será acrescentado ao custo antes das taxas.',example:'100% de markup significa custo × 2 antes dos ajustes de taxas. 10% de falhas é uma reserva conservadora para começar.',ids:['margem','reservaFalha','pedidoMinimo','lucroHora'],defaults:'Sugestões: markup 100%, falhas 10%, pedido mínimo R$ 20, lucro mínimo de máquina R$ 8/h.',check:()=>n('margem')>0?true:fail(['Informe um markup maior que zero.'],['margem'])},
+    {title:'Confira o preço antes de adicionar',text:'Revise o resumo abaixo. Se você vende em marketplace, tem impostos, modelagem ou frete, abra “Opções avançadas” antes de confirmar.',example:'O sistema não deixa usar taxas totais de 95% ou mais e recalcula o preço para absorver as taxas informadas.',special:'review',check:()=>{
+      if(somaTaxas()>=95)return fail(['Revise as taxas: a soma deve ficar abaixo de 95%.'],['taxa','taxaPagamento','taxaAds','impostos']);
+      const canal=v('canalVenda');if(['Mercado Livre','Shopee','Amazon','Etsy'].includes(canal)&&n('taxa')<=0)return fail(['Informe a comissão real do marketplace em Opções avançadas.'],['taxa']);
+      if(!el('revisaoCustos').checked)return fail(['Marque que revisou os custos.'],['revisaoCustos']);
+      return true;
+    }}
+  ];
 
-  document.querySelectorAll('.wizard-step').forEach(b=>b.addEventListener('click',()=>mostrar(Number(b.dataset.step))));
-  document.getElementById('wizardBack').addEventListener('click',()=>mostrar(etapaAtual-1,true));
-  document.getElementById('wizardNext').addEventListener('click',()=>mostrar(etapaAtual+1));
-  document.addEventListener('input',status);
-  document.addEventListener('change',()=>{status();try{salvarDados()}catch(e){}});
+  const q3=[
+    {title:'Quem está emitindo o orçamento?',text:'Informe pelo menos o nome da empresa ou profissional. Telefone é recomendado.',example:'Esses dados aparecem no PDF enviado ao cliente.',ids:['empresaNome','empresaTelefone'],check:()=>v('empresaNome')?true:fail(['Informe o nome da empresa ou profissional.'],['empresaNome'])},
+    {title:'Para quem é o orçamento?',text:'Informe o nome do cliente. O telefone é opcional.',example:'Use o nome que deve aparecer no documento.',ids:['clienteNome','clienteTelefone'],check:()=>v('clienteNome')?true:fail(['Informe o nome do cliente.'],['clienteNome'])},
+    {title:'Prazo e pagamento',text:'Defina validade do orçamento, prazo de produção e como o cliente pagará.',example:'Ex.: validade 7 dias, produção em 3 a 5 dias úteis, 50% na aprovação e 50% na entrega.',ids:['orcValidade','orcPrazo','orcPagamento','orcObs'],check:()=>v('orcPrazo')&&v('orcPagamento')?true:fail(['Informe prazo e condições de pagamento.'],['orcPrazo','orcPagamento'])},
+    {title:'Última conferência',text:'Revise os itens, frete e desconto. Depois visualize ou gere o PDF.',example:'O desconto nunca pode superar subtotal + frete e o total final precisa ser positivo.',special:'quoteFinal',check:()=>{
+      const sub=subtotalOrcamento(),frete=n('orcFrete'),desc=n('orcDesconto');
+      if(!itensOrcamento.length)return fail(['Adicione pelo menos um produto ao orçamento.']);
+      if(desc>sub+frete)return fail(['O desconto é maior que subtotal + frete.'],['orcDesconto']);
+      if(totalOrcamento()<=0)return fail(['O total final deve ser maior que zero.']);
+      return true;
+    }}
+  ];
 
-  const oldAdd=window.adicionarProdutoAoOrcamento;
-  window.adicionarProdutoAoOrcamento=function(){
-    if(!validar1()){mostrar(1,true);return}
-    if(!validar2()){mostrar(2,true);return}
-    if(!validar3()){mostrar(2,true);return}
-    const preco=obterPrecoSelecionadoCalculadora();
-    if(!Number.isFinite(preco)||preco<=0){fail(['O preço escolhido para o orçamento precisa ser maior que zero.'],['precoOrcamentoTipo']);mostrar(3,true);return}
-    const antes=itensOrcamento.length;
-    oldAdd();
-    if(itensOrcamento.length>antes){
-      const item=itensOrcamento[itensOrcamento.length-1];
-      item.nome=item.nome+' — '+dimensoesTexto();
-      item.dimensoes={x:nv('dimensaoX'),y:nv('dimensaoY'),z:nv('dimensaoZ')};
-      item.precoOrigem=v('precoOrcamentoTipo');
-      renderItensOrcamento(); salvarDados(); status(); mostrar(3,true);
+  function questions(){return macro===1?q1:macro===2?q2:q3}
+
+  function hideQuestionNodes(){
+    [step1Grid,machineSection,saleSection,quote].forEach(root=>{
+      if(!root)return;
+      root.querySelectorAll('.field,.size-check-card,.advanced-box,.review-snapshot,.result,.preco-orcamento-box,.actions,.orc-lista,.orc-summary,.quote-actions,.quote-preview,.section,.quote-head,.quote-optional').forEach(x=>x.classList.add('question-hidden'));
+    });
+    if(step1Title)step1Title.classList.add('question-hidden');
+    if(machineSection)machineSection.classList.add('question-hidden');
+    if(saleSection)saleSection.classList.add('question-hidden');
+    if(quote)quote.classList.add('question-hidden');
+    if(resultCard)resultCard.classList.add('question-hidden');
+    if(priceBox)priceBox.classList.add('question-hidden');
+    if(addActions)addActions.classList.add('question-hidden');
+  }
+  function showNode(x){if(x){x.classList.remove('question-hidden');x.classList.add('question-current')}}
+  function showFields(ids){ids.forEach(id=>showNode(field(id)))}
+
+  function renderQuestion(noScroll=false){
+    clearErrors();hideQuestionNodes();
+    const qs=questions();qIndex=Math.max(0,Math.min(qIndex,qs.length-1));const q=qs[qIndex];
+    el('qProgress').textContent='Etapa '+macro+' de 3 · pergunta '+(qIndex+1)+' de '+qs.length;
+    el('qTitle').textContent=q.title;el('qText').textContent=q.text;el('qExample').textContent=q.example||'';
+    el('qDefaults').innerHTML=q.defaults?'<strong>Já deixamos preenchido:</strong> '+q.defaults:'';
+    el('qBack').style.visibility=(macro===1&&qIndex===0)?'hidden':'visible';
+    el('qAdvanced').style.display=macro===2?'inline-block':'none';
+    el('qNext').textContent=(macro===2&&qIndex===qs.length-1)?'Adicionar e ir ao orçamento →':(macro===3&&qIndex===qs.length-1?'Conferir orçamento':'Continuar →');
+
+    if(macro===1){
+      showNode(step1Grid);showFields(q.ids||[]);
+      if(q.special==='size')showNode(step1Grid.querySelector('.size-check-card'));
+      if(q.ids&&q.ids.includes('modoMaterial')&&v('modoMaterial')==='multi')showNode(el('multiMaterialWrap'));
+    }else if(macro===2){
+      showNode(machineSection);showNode(saleSection);
+      showFields(q.ids||[]);
+      if(q.special==='review'){
+        showNode(resultCard);showNode(priceBox);showNode(addActions);showNode(field('revisaoCustos'));
+        saleSection.querySelectorAll('.advanced-box').forEach(showNode);
+        const snap=el('reviewSnapshot');if(snap)showNode(snap);
+      }
+    }else{
+      showNode(quote);showNode(quote.querySelector('.quote-head'));showFields(q.ids||[]);
+      if(qIndex===0){const opt=el('quoteOptional');if(opt)showNode(opt)}
+      if(q.special==='quoteFinal'){
+        quote.querySelectorAll('.orc-lista,.orc-summary,.quote-actions').forEach(showNode);
+        showFields(['orcFrete','orcDesconto']);
+      }
     }
+    macroButtons.forEach(b=>b.classList.toggle('active',Number(b.dataset.step)===macro));
+    const macroMsgs=['Peça e produção','Custos e preço','Orçamento'];el('wizardMessage').textContent=macroMsgs[macro-1]+' — responda uma pergunta por vez.';
+    status();
+    if(!noScroll)help.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function validateMacro1(){
+    if(!v('produtoNome'))return false;
+    if(n('dimensaoX')<=0||n('dimensaoY')<=0||n('dimensaoZ')<=0||!el('medidasConferidas').checked)return false;
+    if(v('modoMaterial')!=='multi'&&n('filamentoKg')<=0)return false;
+    if(n('peso')<=0||n('qtd')<1)return false;
+    return n('horas')>0||n('minutos')>0;
+  }
+  function status(){
+    const s1=validateMacro1();
+    const s2=itensOrcamento.length>0;
+    const s3=itensOrcamento.length>0&&v('empresaNome')&&v('clienteNome')&&v('orcPrazo')&&v('orcPagamento')&&totalOrcamento()>0;
+    [s1,s2,s3].forEach((ok,i)=>{const st=el('statusEtapa'+(i+1));if(st)st.textContent=ok?'Concluída':'Pendente';const b=document.querySelector('.wizard-step[data-step="'+(i+1)+'"]');if(b)b.classList.toggle('complete',!!ok)});
+  }
+
+  function goNext(){
+    const q=questions()[qIndex];if(q.check&&!q.check())return;
+    if(macro===2&&qIndex===questions().length-1){
+      const before=itensOrcamento.length;
+      const original=window.adicionarProdutoAoOrcamentoOriginal||window.adicionarProdutoAoOrcamento;
+      // chama a função original sem o wrapper antigo do guia
+      original();
+      if(itensOrcamento.length>before){
+        const item=itensOrcamento[itensOrcamento.length-1];
+        if(!item.nome.includes('mm'))item.nome=item.nome+' — '+dimensoesTexto();
+        item.dimensoes={x:n('dimensaoX'),y:n('dimensaoY'),z:n('dimensaoZ')};
+        renderItensOrcamento();salvarDados();macro=3;qIndex=0;renderQuestion();return;
+      }
+      return;
+    }
+    if(qIndex<questions().length-1){qIndex++;renderQuestion();return}
+    if(macro<3){macro++;qIndex=0;renderQuestion()}
+  }
+  function goBack(){
+    if(qIndex>0){qIndex--;renderQuestion();return}
+    if(macro>1){macro--;qIndex=questions().length-1;renderQuestion()}
+  }
+
+  // Guardamos a função original e fazemos o botão da tela usar o mesmo fluxo de validação.
+  if(!window.adicionarProdutoAoOrcamentoOriginal)window.adicionarProdutoAoOrcamentoOriginal=window.adicionarProdutoAoOrcamento;
+  window.adicionarProdutoAoOrcamento=function(){
+    if(!validateMacro1()){macro=1;qIndex=0;renderQuestion();return}
+    if(n('energiaKwh')<=0){macro=2;qIndex=0;renderQuestion();return}
+    if(somaTaxas()>=95){macro=2;qIndex=q2.length-1;renderQuestion();fail(['Revise as taxas: a soma deve ficar abaixo de 95%.']);return}
+    if(!el('revisaoCustos').checked){macro=2;qIndex=q2.length-1;renderQuestion();fail(['Marque que revisou os custos antes de adicionar.'],['revisaoCustos']);return}
+    window.adicionarProdutoAoOrcamentoOriginal();
   };
 
   const oldPreview=window.gerarPreviewOrcamento;
-  window.gerarPreviewOrcamento=function(){if(!validar4())return;oldPreview()};
+  window.gerarPreviewOrcamento=function(){
+    const sub=subtotalOrcamento(),frete=n('orcFrete'),desc=n('orcDesconto');
+    if(!v('empresaNome')||!v('clienteNome')||!v('orcPrazo')||!v('orcPagamento')){macro=3;qIndex=0;renderQuestion();return}
+    if(desc>sub+frete||totalOrcamento()<=0){macro=3;qIndex=q3.length-1;renderQuestion();fail(['Revise desconto e total final.'],['orcDesconto']);return}
+    oldPreview();
+  };
   const oldPDF=window.gerarPDFOrcamento;
-  window.gerarPDFOrcamento=async function(){if(!validar4())return;await oldPDF()};
+  window.gerarPDFOrcamento=async function(){
+    const sub=subtotalOrcamento(),frete=n('orcFrete'),desc=n('orcDesconto');
+    if(!v('empresaNome')||!v('clienteNome')||!v('orcPrazo')||!v('orcPagamento')){macro=3;qIndex=0;renderQuestion();return}
+    if(desc>sub+frete||totalOrcamento()<=0){macro=3;qIndex=q3.length-1;renderQuestion();fail(['Revise desconto e total final.'],['orcDesconto']);return}
+    await oldPDF();
+  };
 
-  document.querySelectorAll('button').forEach(b=>{if((b.getAttribute('onclick')||'').includes('adicionarProdutoAoOrcamento')) b.textContent='Revisar e adicionar ao orçamento'});
-  iniciando=false;
-  mostrar(1,true); status();
+  // Se as medidas mudarem, exige nova conferência; se custos mudarem, exige nova revisão.
+  ['dimensaoX','dimensaoY','dimensaoZ'].forEach(id=>el(id)?.addEventListener('input',()=>{if(booting)return;el('medidasConferidas').checked=false;status()}));
+  const costIds=['filamentoKg','peso','horas','minutos','modoTempo','modoMaterial','energiaKwh','impressora','potencia','desgasteHora','desgasteModo','valorImpressora','vidaUtilHoras','manutencaoHora','maoObra','extras','margem','reservaFalha','valorHoraTrabalho','minutosTrabalho','minutosTrabalhoPorPeca','pedidoMinimo','lucroHora','taxa','taxaPagamento','taxaAds','impostos','taxaFixaVenda','freteCobrado','custoFrete','urgencia'];
+  costIds.forEach(id=>{el(id)?.addEventListener('input',()=>{if(!booting&&el('revisaoCustos'))el('revisaoCustos').checked=false;status()});el(id)?.addEventListener('change',()=>{if(!booting&&el('revisaoCustos'))el('revisaoCustos').checked=false;status()})});
+
+  el('qNext').addEventListener('click',goNext);el('qBack').addEventListener('click',goBack);
+  el('qAdvanced').addEventListener('click',()=>{
+    if(macro!==2)return;
+    machineSection?.querySelectorAll('.advanced-box').forEach(x=>{x.classList.remove('question-hidden');x.open=true});
+    saleSection?.querySelectorAll('.advanced-box').forEach(x=>{x.classList.remove('question-hidden');x.open=true});
+  });
+  macroButtons.forEach(b=>b.addEventListener('click',()=>{
+    const target=Number(b.dataset.step);
+    if(target===2&&!validateMacro1()){macro=1;qIndex=0;renderQuestion();fail(['Conclua os dados básicos da peça primeiro.']);return}
+    if(target===3&&!itensOrcamento.length){macro=2;qIndex=q2.length-1;renderQuestion();fail(['Adicione o produto ao orçamento antes de continuar.']);return}
+    macro=target;qIndex=0;renderQuestion();
+  }));
+  el('btnComecar')?.addEventListener('click',()=>{macro=1;qIndex=0;renderQuestion();help.scrollIntoView({behavior:'smooth',block:'start'})});
+
+  document.addEventListener('input',()=>{status();try{salvarDados()}catch(e){}});
+  document.addEventListener('change',()=>{status();try{salvarDados()}catch(e){}});
+
+  document.querySelectorAll('button').forEach(b=>{if((b.getAttribute('onclick')||'').includes('adicionarProdutoAoOrcamento'))b.textContent='Adicionar ao orçamento'});
+
+  booting=false;
+  macro=1;qIndex=0;
+  renderQuestion(true);
+  requestAnimationFrame(()=>window.scrollTo(0,0));
+  setTimeout(()=>window.scrollTo(0,0),120);
 })();
 </script>
 </body>
