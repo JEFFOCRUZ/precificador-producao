@@ -27,6 +27,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:#f6f7f9}
   frame.addEventListener('load',function(){
     try{
       const doc=frame.contentDocument;
+      const win=frame.contentWindow;
       if(doc&&!doc.getElementById('professional-light-refresh-link')){
         const link=doc.createElement('link');
         link.id='professional-light-refresh-link';
@@ -35,9 +36,56 @@ iframe{display:block;width:100%;height:100%;border:0;background:#f6f7f9}
         doc.head.appendChild(link);
       }
       if(doc) doc.documentElement.style.background='#f6f7f9';
+      if(doc&&win) setupQuoteDarkColor(doc,win);
     }catch(e){}
     if(loader) loader.style.display='none';
   });
+
+  function setupQuoteDarkColor(doc,win){
+    if(doc.getElementById('corOrcamentoEscura')) return;
+
+    const customField=doc.getElementById('corOrcamentoCustom')?.closest('.field');
+    if(customField){
+      const field=doc.createElement('div');
+      field.className='field';
+      field.innerHTML='<label>Cor escura do orçamento</label><input id="corOrcamentoEscura" type="color" value="#202733" style="padding:4px;height:46px;"><div class="hint">Muda a cor das áreas escuras da prévia e do PDF.</div>';
+      customField.insertAdjacentElement('afterend',field);
+    }
+
+    const input=doc.getElementById('corOrcamentoEscura');
+    const saved=win.localStorage.getItem('corOrcamentoEscura');
+    if(input&&saved) input.value=saved;
+
+    win.obterCorOrcamentoEscuraHex=function(){
+      return doc.getElementById('corOrcamentoEscura')?.value || '#202733';
+    };
+    win.aplicarCorEscuraPreview=function(){
+      const cor=win.obterCorOrcamentoEscuraHex();
+      const preview=doc.getElementById('quotePreview');
+      if(preview) preview.style.setProperty('--orc-dark',cor);
+      win.localStorage.setItem('corOrcamentoEscura',cor);
+    };
+
+    input?.addEventListener('input',win.aplicarCorEscuraPreview);
+    input?.addEventListener('change',win.aplicarCorEscuraPreview);
+    win.aplicarCorEscuraPreview();
+
+    if(typeof win.gerarPreviewOrcamento==='function'&&!win.gerarPreviewOrcamento.__darkColorPatched){
+      const originalPreview=win.gerarPreviewOrcamento;
+      win.gerarPreviewOrcamento=function(){
+        const result=originalPreview.apply(this,arguments);
+        win.aplicarCorEscuraPreview();
+        return result;
+      };
+      win.gerarPreviewOrcamento.__darkColorPatched=true;
+    }
+
+    const pdfButton=[...doc.querySelectorAll('button')].find(button => button.textContent.trim()==='Gerar PDF');
+    if(pdfButton&&!pdfButton.dataset.darkColorPrint){
+      pdfButton.dataset.darkColorPrint='true';
+      pdfButton.setAttribute('onclick','gerarPreviewOrcamento(); setTimeout(function(){ window.print(); }, 120);');
+    }
+  }
 })();
 </script>
 </body>
