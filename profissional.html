@@ -172,8 +172,10 @@ button{
   justify-content:space-between;
   gap:24px;
   align-items:flex-start;
-  border-bottom:3px solid var(--orc-accent);
-  padding:4px 0 16px;
+  background:#1c1e22;
+  border-left:6px solid var(--orc-accent);
+  border-radius:12px;
+  padding:18px 20px;
 }
 .qp-logo img{
   max-width:55mm;
@@ -183,8 +185,8 @@ button{
   object-fit:contain;
 }
 .qp-title{text-align:right}
-.qp-title h2{margin:0;font-size:26px;letter-spacing:.3px}
-.qp-title p{margin:6px 0 0;color:#666;font-size:12px}
+.qp-title h2{margin:0;font-size:28px;letter-spacing:.4px;color:#fff}
+.qp-title p{margin:6px 0 0;color:#c9cdd4;font-size:12px}
 .qp-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -192,10 +194,11 @@ button{
   margin-top:8mm;
 }
 .qp-box{
-  background:#f7f7f8;
-  border:1px solid #e5e7eb;
-  border-radius:8px;
-  padding:12px;
+  background:#fbfbfc;
+  border:1px solid #e4e6ea;
+  border-left:4px solid var(--orc-accent);
+  border-radius:10px;
+  padding:14px;
 }
 .qp-box h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--orc-accent)}
 .qp-box p{margin:3px 0;font-size:12px;line-height:1.5}
@@ -207,7 +210,7 @@ button{
   table-layout:fixed;
 }
 .qp-table th{
-  background:#2b2d31;
+  background:#1c1e22;
   color:#fff;
   text-align:left;
   padding:9px 8px;
@@ -220,11 +223,16 @@ button{
 .qp-total{
   margin-top:8mm;
   margin-left:auto;
-  width:72mm;
+  width:78mm;
   max-width:100%;
+  background:#1c1e22;
+  color:#fff;
+  border-left:5px solid var(--orc-accent);
+  border-radius:10px;
+  padding:10px 12px;
 }
-.qp-total div{display:flex;justify-content:space-between;padding:7px 0;font-size:13px}
-.qp-total .grand{font-size:20px;font-weight:900;border-top:2px solid var(--orc-accent);margin-top:4px;padding:11px 10px;color:var(--orc-accent);background:#fafafa;border-radius:6px}
+.qp-total div{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#d7dae0}
+.qp-total .grand{font-size:20px;font-weight:900;border-top:1px solid #4a4d53;margin-top:5px;padding:12px 0 2px;color:var(--orc-accent);background:transparent;border-radius:0}
 .qp-note{
   margin-top:10mm;
   font-size:11px;
@@ -1694,49 +1702,43 @@ async function gerarPDFOrcamento(){
   }
 
   async function cabecalho(){
-    // Fundo branco com assinatura visual no topo.
+    // Cabeçalho premium: faixa escura, acento da marca e identificação da proposta.
     doc.setFillColor(255,255,255);
     doc.rect(0,0,pageW,pageH,'F');
+
     doc.setFillColor(...dark);
-    doc.rect(0,0,pageW,4,'F');
+    doc.roundedRect(margin,10,contentW,31,4,4,'F');
     doc.setFillColor(...gold);
-    doc.rect(0,4,pageW,1.2,'F');
+    doc.roundedRect(margin,10,5,31,4,4,'F');
 
-    // Logo proporcional
     const logoUsada = logoEmpresaData || document.querySelector('.logo-box img').src;
-    const colocouLogo = await addLogoProporcional(logoUsada, margin, 13, 55, 24);
-
+    const colocouLogo = await addLogoProporcional(logoUsada, margin+10, 15, 52, 20);
     if(!colocouLogo){
-      doc.setTextColor(...dark);
+      doc.setTextColor(255,255,255);
       doc.setFont('helvetica','bold');
-      doc.setFontSize(16);
-      doc.text(empresa, margin, 24);
+      doc.setFontSize(14);
+      doc.text(empresa, margin+12, 25, {maxWidth:70});
     }
 
-    // Título do orçamento à direita
-    doc.setTextColor(...dark);
+    doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold');
-    doc.setFontSize(22);
-    doc.text('ORÇAMENTO', pageW - margin, 19, {align:'right'});
-    doc.setFontSize(7);
-    doc.setTextColor(...gold);
-    doc.text('PROPOSTA COMERCIAL', pageW - margin, 34, {align:'right'});
+    doc.setFontSize(19);
+    doc.text('ORÇAMENTO', pageW-margin-10, 21, {align:'right'});
 
     doc.setFont('helvetica','normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...gray);
-    doc.text(numero, pageW - margin, 25, {align:'right'});
-    doc.text('Emitido em ' + data.toLocaleDateString('pt-BR'), pageW - margin, 29, {align:'right'});
+    doc.setFontSize(7.2);
+    doc.setTextColor(215,218,223);
+    doc.text('PROPOSTA COMERCIAL', pageW-margin-10, 27, {align:'right'});
 
-    // Linha dourada elegante
-    doc.setDrawColor(...gold);
-    doc.setLineWidth(1.2);
-    doc.line(margin, 40, pageW - margin, 40);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...gold);
+    doc.text(numero, pageW-margin-10, 33, {align:'right'});
+    doc.setTextColor(215,218,223);
+    doc.text(data.toLocaleDateString('pt-BR'), pageW-margin-10, 37, {align:'right'});
   }
-
   await cabecalho();
 
-  let y = 50;
+  let y = 48;
 
   // Cartões: empresa e cliente, com altura dinâmica para textos maiores.
   const gap = 8;
@@ -1759,16 +1761,20 @@ async function gerarPDFOrcamento(){
   const alturaCliente = 18 + clienteNomeLines.length*4.4 + dadosCliente.reduce((a,l)=>a+l.length*4.1,0) + 6;
   const boxH = Math.max(44, alturaEmpresa, alturaCliente);
 
-  doc.setFillColor(...light);
+  doc.setFillColor(252,252,253);
   doc.setDrawColor(...border);
-  doc.roundedRect(margin, y, boxW, boxH, 3, 3, 'FD');
-  doc.roundedRect(margin + boxW + gap, y, boxW, boxH, 3, 3, 'FD');
+  doc.roundedRect(margin, y, boxW, boxH, 4, 4, 'FD');
+  doc.roundedRect(margin + boxW + gap, y, boxW, boxH, 4, 4, 'FD');
+
+  doc.setFillColor(...gold);
+  doc.roundedRect(margin, y, 3, boxH, 3, 3, 'F');
+  doc.roundedRect(margin + boxW + gap, y, 3, boxH, 3, 3, 'F');
 
   doc.setTextColor(...gold);
   doc.setFont('helvetica','bold');
-  doc.setFontSize(9);
-  doc.text('DADOS DA EMPRESA', margin + 5, y + 8);
-  doc.text('DADOS DO CLIENTE', margin + boxW + gap + 5, y + 8);
+  doc.setFontSize(8.2);
+  doc.text('EMITENTE', margin + 7, y + 8);
+  doc.text('CLIENTE', margin + boxW + gap + 7, y + 8);
 
   doc.setTextColor(...dark);
   doc.setFont('helvetica','bold');
@@ -1797,11 +1803,13 @@ async function gerarPDFOrcamento(){
 
   function tableHeader(){
     doc.setFillColor(...dark);
-    doc.roundedRect(margin, y, contentW, 10, 2, 2, 'F');
+    doc.roundedRect(margin, y, contentW, 11, 3, 3, 'F');
+    doc.setFillColor(...gold);
+    doc.roundedRect(margin, y, 4, 11, 3, 3, 'F');
 
     doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8.2);
 
     const colQtd=142, colUnit=158, colTotal=pageW-margin-3;
     doc.text('Descrição', margin + 4, y + 6.5);
@@ -1809,7 +1817,7 @@ async function gerarPDFOrcamento(){
     doc.text('Unitário', colUnit, y + 6.5, {align:'right'});
     doc.text('Total', colTotal, y + 6.5, {align:'right'});
 
-    y += 12;
+    y += 13;
   }
 
   tableHeader();
@@ -1827,10 +1835,8 @@ async function gerarPDFOrcamento(){
       tableHeader();
     }
 
-    if(idx % 2 === 0){
-      doc.setFillColor(249,250,251);
-      doc.rect(margin, y - 1.5, contentW, rowH, 'F');
-    }
+    doc.setFillColor(idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 251 : 255);
+    doc.roundedRect(margin, y - 1.5, contentW, rowH, 1.5, 1.5, 'F');
 
     doc.setTextColor(...dark);
     doc.setFont('helvetica','normal');
@@ -1855,26 +1861,39 @@ async function gerarPDFOrcamento(){
     y = 52;
   }
 
-  // Total
-  y += 6;
-  const totalBoxW = 72;
+  // Resumo financeiro em destaque.
+  y += 7;
+  const totalBoxW = 80;
   const freteOrc=numeroSeguro('orcFrete',0,1e8), descontoOrc=numeroSeguro('orcDesconto',0,1e8), subtotalOrc=subtotalOrcamento();
   const totalX = pageW - margin - totalBoxW;
 
-  doc.setFillColor(248,248,249);
-  doc.setDrawColor(...gold);
-  doc.roundedRect(totalX, y, totalBoxW, 37, 3, 3, 'FD');
+  doc.setFillColor(...dark);
+  doc.roundedRect(totalX, y, totalBoxW, 43, 4, 4, 'F');
+  doc.setFillColor(...gold);
+  doc.roundedRect(totalX, y, 4, 43, 4, 4, 'F');
 
-  doc.setTextColor(...gray);
+  doc.setTextColor(205,209,216);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(7.8);
+  doc.text('Subtotal', totalX + 9, y + 8);
+  doc.text(brl(subtotalOrc), totalX + totalBoxW - 7, y + 8, {align:'right'});
+  doc.text('Frete', totalX + 9, y + 14);
+  doc.text(brl(freteOrc), totalX + totalBoxW - 7, y + 14, {align:'right'});
+  doc.text('Desconto', totalX + 9, y + 20);
+  doc.text('- '+brl(descontoOrc), totalX + totalBoxW - 7, y + 20, {align:'right'});
+
+  doc.setDrawColor(72,75,81);
+  doc.setLineWidth(.3);
+  doc.line(totalX + 9, y + 24, totalX + totalBoxW - 7, y + 24);
+
+  doc.setTextColor(255,255,255);
   doc.setFont('helvetica','bold');
   doc.setFontSize(8.5);
-  doc.text('SUBTOTAL', totalX + 5, y + 6);doc.setFont('helvetica','normal');doc.text(brl(subtotalOrc), totalX+totalBoxW-5, y+6,{align:'right'});doc.text('Frete',totalX+5,y+12);doc.text(brl(freteOrc),totalX+totalBoxW-5,y+12,{align:'right'});doc.text('Desconto',totalX+5,y+18);doc.text('- '+brl(descontoOrc),totalX+totalBoxW-5,y+18,{align:'right'});doc.setFont('helvetica','bold');doc.text('TOTAL DO ORÇAMENTO', totalX + 5, y + 25);
-
+  doc.text('VALOR DA PROPOSTA', totalX + 9, y + 31);
   doc.setTextColor(...gold);
-  doc.setFontSize(16);
-  doc.text(brl(total), totalX + totalBoxW - 5, y + 34, {align:'right'});
-
-  y += 48;
+  doc.setFontSize(17);
+  doc.text(brl(total), totalX + totalBoxW - 7, y + 39, {align:'right'});
+  y += 54;
 
   async function novaPaginaConteudo(){
     doc.addPage('a4','portrait');
@@ -1893,14 +1912,20 @@ async function gerarPDFOrcamento(){
         continue;
       }
       const bloco=linhas.splice(0,maxLinhas);
+      doc.setFillColor(248,249,250);
+      doc.setDrawColor(...border);
+      const secH=10+bloco.length*4.3;
+      doc.roundedRect(margin,y-4,contentW,secH,3,3,'FD');
+      doc.setFillColor(...gold);
+      doc.roundedRect(margin,y-4,3,secH,3,3,'F');
       doc.setTextColor(...dark);
       doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.text(primeira?titulo:titulo+' (continuação)', margin, y);
-      doc.setFont('helvetica','normal');
       doc.setFontSize(8.5);
+      doc.text(primeira?titulo:titulo+' (continuação)', margin+7, y+1);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.3);
       doc.setTextColor(...gray);
-      doc.text(bloco, margin, y+6);
+      doc.text(bloco, margin+7, y+7);
       y += 10 + bloco.length*4.3;
       primeira=false;
       if(linhas.length) await novaPaginaConteudo();
@@ -1919,38 +1944,37 @@ async function gerarPDFOrcamento(){
     const msgH=Math.max(24,14+linhasMsg.length*4.6);
     if(y+msgH>273) await novaPaginaConteudo();
     y+=5;
-    doc.setFillColor(250,250,250);
+    doc.setFillColor(...dark);
     doc.setDrawColor(...gold);
-    doc.setLineWidth(.6);
-    doc.roundedRect(margin,y,contentW,msgH,3,3,'FD');
+    doc.setLineWidth(.7);
+    doc.roundedRect(margin,y,contentW,msgH,4,4,'FD');
     doc.setDrawColor(...gold);
     doc.setLineWidth(1.4);
     doc.line(margin+contentW/2-18,y+7,margin+contentW/2+18,y+7);
-    doc.setTextColor(...dark);
+    doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold');
-    doc.setFontSize(9);
+    doc.setFontSize(9.5);
     doc.text('MUITO OBRIGADO!',pageW/2,y+14,{align:'center'});
     doc.setFont('helvetica','normal');
     doc.setFontSize(8.7);
-    doc.setTextColor(...gray);
+    doc.setTextColor(220,223,228);
     doc.text(linhasMsg,pageW/2,y+21,{align:'center',maxWidth:contentW-24});
     y+=msgH+6;
   }
 
   // Rodapé final.
-  doc.setFillColor(249,250,251);
-  doc.rect(0,279,pageW,18,'F');
-  doc.setDrawColor(...gold);
-  doc.setLineWidth(.6);
-  doc.line(margin,281,pageW-margin,281);
+  doc.setFillColor(...dark);
+  doc.rect(0,282,pageW,15,'F');
+  doc.setFillColor(...gold);
+  doc.rect(0,282,pageW,1,'F');
   doc.setFont('helvetica','bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...dark);
-  doc.text(empresa, margin, 288, {maxWidth:105});
+  doc.setFontSize(7.3);
+  doc.setTextColor(255,255,255);
+  doc.text(empresa, margin, 290, {maxWidth:105});
   doc.setFont('helvetica','normal');
-  doc.setTextColor(...gray);
+  doc.setTextColor(205,209,216);
   if(telefone){
-    doc.text(telefone, pageW - margin, 288, {align:'right',maxWidth:60});
+    doc.text(telefone, pageW - margin, 290, {align:'right',maxWidth:60});
   }
 
   const safe = (cliente || 'cliente').replace(/[^\wÀ-ÿ-]+/g,'_');
